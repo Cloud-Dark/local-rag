@@ -104,7 +104,7 @@ async function processFile(filePath, fileName, customName = null, fileUrl = null
     text = fs.readFileSync(filePath, "utf-8");
   }
 
-  const chunks = chunkText(text, displayName);
+  const chunks = chunkText(text, displayName, { auto: true });
   let success = 0;
 
   for (const chunk of chunks) {
