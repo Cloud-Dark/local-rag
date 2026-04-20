@@ -16,6 +16,7 @@ import path from "path";
 import swaggerUi from "swagger-ui-express";
 import yaml from "yamljs";
 import { createServer } from "net";
+import fetch from "node-fetch";
 import { CONFIG } from "./config.js";
 import { loadAndChunkAll, chunkText } from "./loader.js";
 import { embedText, initEmbedder } from "./embedder.js";
@@ -89,6 +90,28 @@ let trainingStatus = {
 };
 
 // ─────────────────────────────────────────
+//  Helper — fetch konten dari URL
+// ─────────────────────────────────────────
+async function fetchUrlContent(url) {
+  console.log(`🌐 Fetching: ${url}`);
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch URL: ${response.status} ${response.statusText}`);
+  }
+  const html = await response.text();
+  
+  // Simple HTML to text conversion (remove tags)
+  const text = html
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  
+  return text;
+}
+
+// ─────────────────────────────────────────
 //  Helper — proses 1 file jadi chunks + embed + simpan
 // ─────────────────────────────────────────
 async function processFile(filePath, fileName, customName = null, sourceUrl = null) {
@@ -118,14 +141,34 @@ async function processFile(filePath, fileName, customName = null, sourceUrl = nu
   return { fileName: displayName, chunks: success, sourceUrl };
 }
 
+// ─────────────────────────────────────────
+//  Helper — proses URL jadi chunks + embed + simpan
+// ─────────────────────────────────────────
+async function processUrl(url, customName = null) {
+  const text = await fetchUrlContent(url);
+  const displayName = customName || new URL(url).hostname;
+  
+  const chunks = chunkText(text, displayName, { auto: true });
+  
+  let success = 0;
+  for (const chunk of chunks) {
+    const vector = await embedText(chunk.text);
+    await upsertChunk(chunk, vector, url);
+    success++;
+  }
+  
+  return { fileName: displayName, chunks: success, sourceUrl: url };
+}
+
 // ═══════════════════════════════════════════════════════════
 //  POST /training
-//  Upload satu atau lebih file → otomatis di-index
+//  Upload file atau URL → otomatis di-index
 //
-//  Body  : multipart/form-data
-//  Field : files (bisa multiple)
-//  Field : customNames (optional, JSON array) - nama display
-//  Field : sourceUrls (optional, JSON array) - URL sumber
+//  Body  : multipart/form-data atau JSON
+//  Field : files (optional) - file PDF/TXT/MD
+//  Field : urls (optional) - JSON array URL untuk di-fetch
+//  Field : customNames (optional) - JSON array nama display
+//  Field : sourceUrls (optional) - JSON array URL sumber (untuk files)
 //
 //  Response:
 //  {
@@ -138,11 +181,17 @@ async function processFile(filePath, fileName, customName = null, sourceUrl = nu
 //  }
 // ═══════════════════════════════════════════════════════════
 app.post("/training", upload.array("files"), async (req, res) => {
+  // Support both JSON body and form-data
+  const body = { ...req.body, ...req.query };
+  
   if (!req.files || req.files.length === 0) {
-    return res.status(400).json({
-      success: false,
-      error: "Tidak ada file yang diupload. Gunakan field name 'files'.",
-    });
+    // Check if URLs are provided instead
+    if (!body.urls && !body.url) {
+      return res.status(400).json({
+        success: false,
+        error: "Tidak ada file atau URL yang diupload. Gunakan field 'files' atau 'urls'.",
+      });
+    }
   }
 
   if (trainingStatus.isRunning) {
@@ -152,9 +201,9 @@ app.post("/training", upload.array("files"), async (req, res) => {
     });
   }
 
-  // Parse customNames - support: JSON array, comma-separated, atau query param
+  // Parse customNames
   let customNames = [];
-  const customNamesSource = req.body.customNames || req.query.customNames;
+  const customNamesSource = body.customNames;
   if (customNamesSource) {
     try {
       const parsed = JSON.parse(customNamesSource);
@@ -165,9 +214,9 @@ app.post("/training", upload.array("files"), async (req, res) => {
   }
   console.log("DEBUG customNames:", customNames);
 
-  // Parse sourceUrls - support: JSON array, comma-separated, atau query param
+  // Parse sourceUrls (for files)
   let sourceUrls = [];
-  const sourceUrlsSource = req.body.sourceUrls || req.query.sourceUrls;
+  const sourceUrlsSource = body.sourceUrls;
   if (sourceUrlsSource) {
     try {
       const parsed = JSON.parse(sourceUrlsSource);
@@ -178,20 +227,48 @@ app.post("/training", upload.array("files"), async (req, res) => {
   }
   console.log("DEBUG sourceUrls:", sourceUrls);
 
+  // Parse urls (for URL fetching)
+  let urls = [];
+  const urlsSource = body.urls || body.url;
+  if (urlsSource) {
+    try {
+      const parsed = JSON.parse(urlsSource);
+      urls = Array.isArray(parsed) ? parsed : [parsed];
+    } catch (e) {
+      urls = urlsSource.split(',').map(s => s.trim()).filter(s => s);
+    }
+  }
+  console.log("DEBUG urls:", urls);
+
   trainingStatus.isRunning = true;
   const processed = [];
   const failed = [];
 
   try {
-    for (let i = 0; i < req.files.length; i++) {
-      const file = req.files[i];
+    // Process files
+    if (req.files && req.files.length > 0) {
+      for (let i = 0; i < req.files.length; i++) {
+        const file = req.files[i];
+        try {
+          const customName = customNames[i] || null;
+          const sourceUrl = sourceUrls[i] || null;
+          const result = await processFile(file.path, file.originalname || file.filename, customName, sourceUrl);
+          processed.push(result);
+        } catch (err) {
+          failed.push({ fileName: file.originalname, error: err.message });
+        }
+      }
+    }
+
+    // Process URLs
+    for (let i = 0; i < urls.length; i++) {
+      const url = urls[i];
       try {
-        const customName = customNames[i] || null;
-        const sourceUrl = sourceUrls[i] || null;
-        const result = await processFile(file.path, file.originalname || file.filename, customName, sourceUrl);
+        const customName = customNames[req.files?.length + i] || null;
+        const result = await processUrl(url, customName);
         processed.push(result);
       } catch (err) {
-        failed.push({ fileName: file.originalname, error: err.message });
+        failed.push({ url, error: err.message });
       }
     }
 

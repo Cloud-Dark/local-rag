@@ -42,11 +42,11 @@ paths:
     post:
       tags:
         - Training
-      summary: Upload dan index dokumen
-      description: Upload file PDF, TXT, atau MD untuk di-index ke vector database
+      summary: Upload dokumen atau URL untuk di-index
+      description: Upload file PDF/TXT/MD atau URL untuk di-fetch dan di-index ke vector database
       operationId: uploadDocuments
       requestBody:
-        required: true
+        required: false
         content:
           multipart/form-data:
             schema:
@@ -58,14 +58,35 @@ paths:
                     type: string
                     format: binary
                   description: File dokumen (PDF, TXT, MD) - bisa multiple
+                urls:
+                  type: string
+                  description: JSON array URL untuk di-fetch dan di-index. Contoh: ["https://example.com/page1","https://example.com/page2"]
+                  example: '["https://transdesk.trans-cosmos.co.id/public/front/helpdesk.faq.php?id=2"]'
                 customNames:
                   type: string
-                  description: JSON array nama display untuk setiap file (opsional). Contoh: ["KB_Exit_Clearance","Dokumen2"]
+                  description: JSON array nama display untuk setiap file/URL (opsional). Contoh: ["KB_Exit_Clearance","FAQ Page"]
                   example: '["KB_Exit_Clearance"]'
                 sourceUrls:
                   type: string
-                  description: JSON array URL sumber untuk setiap file (opsional). Contoh: ["https://example.com/docs/1","https://example.com/docs/2"]
+                  description: JSON array URL sumber untuk setiap file (opsional). Untuk file yang di-upload. Contoh: ["https://example.com/docs/1"]
                   example: '["https://transdesk.trans-cosmos.co.id/public/front/knowbaseitem.form.php?id=16"]'
+          application/json:
+            schema:
+              type: object
+              properties:
+                urls:
+                  type: array
+                  items:
+                    type: string
+                    format: uri
+                  description: Array URL untuk di-fetch
+                  example: ["https://transdesk.trans-cosmos.co.id/public/front/helpdesk.faq.php?id=2"]
+                customNames:
+                  type: array
+                  items:
+                    type: string
+                  description: Array nama display
+                  example: ["FAQ Page"]
       responses:
         '200':
           description: Dokumen berhasil di-index
