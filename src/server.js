@@ -29,7 +29,13 @@ app.use(express.json());
 // ─────────────────────────────────────────
 //  Static Files — UI
 // ─────────────────────────────────────────
-app.use(express.static(path.join(process.cwd(), "public")));
+const publicPath = path.join(process.cwd(), "public");
+app.use(express.static(publicPath));
+
+// Root route - serve index.html
+app.get("/", (req, res) => {
+  res.sendFile(path.join(publicPath, "index.html"));
+});
 
 // ─────────────────────────────────────────
 //  Swagger UI
@@ -415,13 +421,6 @@ app.get("/health", async (req, res) => {
     isTrainingRunning: trainingStatus.isRunning,
     embeddingModel: CONFIG.EMBEDDING_MODEL_PATH,
   });
-});
-
-// ─────────────────────────────────────────
-//  Root — redirect to UI
-// ─────────────────────────────────────────
-app.get("/", (req, res) => {
-  res.redirect("/index.html");
 });
 
 // ═══════════════════════════════════════════════════════════
