@@ -30,7 +30,7 @@ app.use(express.json());
 // ─────────────────────────────────────────
 const swaggerDocument = yaml.load(path.join(process.cwd(), "swagger.yaml"));
 
-// Dynamic server URL based on actual host
+// Dynamic server URL based on request host
 swaggerDocument.servers = [
   {
     url: `http://localhost:${process.env.PORT || 3000}`,
@@ -42,7 +42,10 @@ swaggerDocument.servers = [
   }
 ];
 
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument, {
+  // Use request host for "Try it out" requests
+  customCss: '.swagger-ui .topbar { display: none }'
+}));
 
 // ─────────────────────────────────────────
 //  Multer — simpan upload ke documents/
