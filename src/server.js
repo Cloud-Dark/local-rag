@@ -91,10 +91,10 @@ let trainingStatus = {
 // ─────────────────────────────────────────
 //  Helper — proses 1 file jadi chunks + embed + simpan
 // ─────────────────────────────────────────
-async function processFile(filePath, fileName, customName = null, fileUrl = null) {
+async function processFile(filePath, fileName, customName = null, sourceUrl = null) {
   const ext = path.extname(fileName).toLowerCase();
   let text = "";
-  const displayName = customName || fileName; // Pakai custom name kalau ada
+  const displayName = customName || fileName;
 
   if (ext === ".pdf") {
     const buffer = fs.readFileSync(filePath);
@@ -109,11 +109,11 @@ async function processFile(filePath, fileName, customName = null, fileUrl = null
 
   for (const chunk of chunks) {
     const vector = await embedText(chunk.text);
-    await upsertChunk(chunk, vector, fileUrl); // Simpan fileUrl juga
+    await upsertChunk(chunk, vector, sourceUrl);
     success++;
   }
 
-  return { fileName: displayName, chunks: success, fileUrl };
+  return { fileName: displayName, chunks: success, sourceUrl };
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -122,13 +122,14 @@ async function processFile(filePath, fileName, customName = null, fileUrl = null
 //
 //  Body  : multipart/form-data
 //  Field : files (bisa multiple)
-//  Field : customNames (optional, JSON array)
+//  Field : customNames (optional, JSON array) - nama display
+//  Field : sourceUrls (optional, JSON array) - URL sumber
 //
 //  Response:
 //  {
 //    "success": true,
 //    "processed": [
-//      { "fileName": "doc.pdf", "chunks": 24 }
+//      { "fileName": "KB_Exit_Clearance", "chunks": 24, "sourceUrl": "https://..." }
 //    ],
 //    "failed": [],
 //    "totalChunksInDB": 56
@@ -149,7 +150,7 @@ app.post("/training", upload.array("files"), async (req, res) => {
     });
   }
 
-  // Parse customNames kalau ada (JSON string dari form field)
+  // Parse customNames kalau ada (JSON array dari form field)
   let customNames = [];
   if (req.body.customNames) {
     try {
@@ -159,13 +160,13 @@ app.post("/training", upload.array("files"), async (req, res) => {
     }
   }
 
-  // Parse fileUrls kalau ada (JSON string dari form field)
-  let fileUrls = [];
-  if (req.body.fileUrls) {
+  // Parse sourceUrls kalau ada (JSON array dari form field)
+  let sourceUrls = [];
+  if (req.body.sourceUrls) {
     try {
-      fileUrls = JSON.parse(req.body.fileUrls);
+      sourceUrls = JSON.parse(req.body.sourceUrls);
     } catch (e) {
-      fileUrls = [];
+      sourceUrls = [];
     }
   }
 
@@ -178,8 +179,8 @@ app.post("/training", upload.array("files"), async (req, res) => {
       const file = req.files[i];
       try {
         const customName = customNames[i] || null;
-        const fileUrl = fileUrls[i] || null;
-        const result = await processFile(file.path, file.originalname || file.filename, customName, fileUrl);
+        const sourceUrl = sourceUrls[i] || null;
+        const result = await processFile(file.path, file.originalname || file.filename, customName, sourceUrl);
         processed.push(result);
       } catch (err) {
         failed.push({ fileName: file.originalname, error: err.message });
@@ -303,7 +304,7 @@ app.post("/search", async (req, res) => {
         rank: i + 1,
         score: parseFloat(r.score.toFixed(4)),
         fileName: r.fileName,
-        fileUrl: r.fileUrl || null,
+        sourceUrl: r.sourceUrl || null,
         chunkIndex: r.chunkIndex,
         text: r.text,
       })),

@@ -42,7 +42,7 @@ export async function semanticSearch(query, topK = CONFIG.TOP_K) {
       rank: i + 1,
       score: parseFloat(r.score.toFixed(4)),
       fileName: r.fileName,
-      fileUrl: r.fileUrl || null,
+      sourceUrl: r.sourceUrl || null,
       chunkIndex: r.chunkIndex,
       text: r.text,
     })),

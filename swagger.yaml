@@ -60,12 +60,12 @@ paths:
                   description: File dokumen (PDF, TXT, MD) - bisa multiple
                 customNames:
                   type: string
-                  description: JSON array nama custom untuk setiap file (opsional). Contoh: ["KB_Exit_Clearance","Dokumen2"]
-                  example: '["KB_Exit_Clearance","Dokumen2"]'
-                fileUrls:
+                  description: JSON array nama display untuk setiap file (opsional). Contoh: ["KB_Exit_Clearance","Dokumen2"]
+                  example: '["KB_Exit_Clearance"]'
+                sourceUrls:
                   type: string
-                  description: JSON array URL untuk setiap file (opsional). Contoh: ["https://example.com/docs/KB_Exit_Clearance","https://example.com/docs/Doc2"]
-                  example: '["https://example.com/docs/KB_Exit_Clearance","https://example.com/docs/Doc2"]'
+                  description: JSON array URL sumber untuk setiap file (opsional). Contoh: ["https://example.com/docs/1","https://example.com/docs/2"]
+                  example: '["https://transdesk.trans-cosmos.co.id/public/front/knowbaseitem.form.php?id=16"]'
       responses:
         '200':
           description: Dokumen berhasil di-index
@@ -302,10 +302,10 @@ components:
               fileName:
                 type: string
                 example: intro-ml.pdf
-              fileUrl:
+              sourceUrl:
                 type: string
                 nullable: true
-                example: https://example.com/docs/KB_Exit_Clearance
+                example: https://transdesk.trans-cosmos.co.id/public/front/knowbaseitem.form.php?id=16
               chunkIndex:
                 type: integer
                 example: 4

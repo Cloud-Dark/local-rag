@@ -26,7 +26,7 @@ export async function getIndex() {
 // ─────────────────────────────────────────
 //  Simpan chunk + vector ke Vectra
 // ─────────────────────────────────────────
-export async function upsertChunk(chunk, vector, fileUrl = null) {
+export async function upsertChunk(chunk, vector, sourceUrl = null) {
   const index = await getIndex();
 
   await index.upsertItem({
@@ -34,7 +34,7 @@ export async function upsertChunk(chunk, vector, fileUrl = null) {
     vector,
     metadata: {
       text: chunk.text,
-      fileUrl, // Simpan file URL kalau ada
+      sourceUrl, // URL sumber dokumen
       ...chunk.metadata,
     },
   });
@@ -52,7 +52,7 @@ export async function searchSimilar(queryVector, topK = CONFIG.TOP_K) {
     text: r.item.metadata.text,
     fileName: r.item.metadata.fileName,
     chunkIndex: r.item.metadata.chunkIndex,
-    fileUrl: r.item.metadata.fileUrl || null, // Kembalikan file URL kalau ada
+    sourceUrl: r.item.metadata.sourceUrl || null, // URL sumber kalau ada
     score: r.score,
   }));
 }
