@@ -62,6 +62,10 @@ paths:
                   type: string
                   description: JSON array nama custom untuk setiap file (opsional). Contoh: ["KB_Exit_Clearance","Dokumen2"]
                   example: '["KB_Exit_Clearance","Dokumen2"]'
+                fileUrls:
+                  type: string
+                  description: JSON array URL untuk setiap file (opsional). Contoh: ["https://example.com/docs/KB_Exit_Clearance","https://example.com/docs/Doc2"]
+                  example: '["https://example.com/docs/KB_Exit_Clearance","https://example.com/docs/Doc2"]'
       responses:
         '200':
           description: Dokumen berhasil di-index
@@ -298,6 +302,10 @@ components:
               fileName:
                 type: string
                 example: intro-ml.pdf
+              fileUrl:
+                type: string
+                nullable: true
+                example: https://example.com/docs/KB_Exit_Clearance
               chunkIndex:
                 type: integer
                 example: 4

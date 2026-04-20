@@ -91,7 +91,7 @@ let trainingStatus = {
 // ─────────────────────────────────────────
 //  Helper — proses 1 file jadi chunks + embed + simpan
 // ─────────────────────────────────────────
-async function processFile(filePath, fileName, customName = null) {
+async function processFile(filePath, fileName, customName = null, fileUrl = null) {
   const ext = path.extname(fileName).toLowerCase();
   let text = "";
   const displayName = customName || fileName; // Pakai custom name kalau ada
@@ -109,11 +109,11 @@ async function processFile(filePath, fileName, customName = null) {
 
   for (const chunk of chunks) {
     const vector = await embedText(chunk.text);
-    await upsertChunk(chunk, vector);
+    await upsertChunk(chunk, vector, fileUrl); // Simpan fileUrl juga
     success++;
   }
 
-  return { fileName: displayName, chunks: success };
+  return { fileName: displayName, chunks: success, fileUrl };
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -159,6 +159,16 @@ app.post("/training", upload.array("files"), async (req, res) => {
     }
   }
 
+  // Parse fileUrls kalau ada (JSON string dari form field)
+  let fileUrls = [];
+  if (req.body.fileUrls) {
+    try {
+      fileUrls = JSON.parse(req.body.fileUrls);
+    } catch (e) {
+      fileUrls = [];
+    }
+  }
+
   trainingStatus.isRunning = true;
   const processed = [];
   const failed = [];
@@ -168,7 +178,8 @@ app.post("/training", upload.array("files"), async (req, res) => {
       const file = req.files[i];
       try {
         const customName = customNames[i] || null;
-        const result = await processFile(file.path, file.originalname || file.filename, customName);
+        const fileUrl = fileUrls[i] || null;
+        const result = await processFile(file.path, file.originalname || file.filename, customName, fileUrl);
         processed.push(result);
       } catch (err) {
         failed.push({ fileName: file.originalname, error: err.message });
@@ -292,6 +303,7 @@ app.post("/search", async (req, res) => {
         rank: i + 1,
         score: parseFloat(r.score.toFixed(4)),
         fileName: r.fileName,
+        fileUrl: r.fileUrl || null,
         chunkIndex: r.chunkIndex,
         text: r.text,
       })),
