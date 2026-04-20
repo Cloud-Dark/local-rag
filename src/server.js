@@ -92,9 +92,11 @@ let trainingStatus = {
 //  Helper — proses 1 file jadi chunks + embed + simpan
 // ─────────────────────────────────────────
 async function processFile(filePath, fileName, customName = null, sourceUrl = null) {
+  console.log("DEBUG processFile:", { fileName, customName, sourceUrl });
   const ext = path.extname(fileName).toLowerCase();
   let text = "";
   const displayName = customName || fileName;
+  console.log("DEBUG displayName:", displayName);
 
   if (ext === ".pdf") {
     const buffer = fs.readFileSync(filePath);
@@ -105,8 +107,8 @@ async function processFile(filePath, fileName, customName = null, sourceUrl = nu
   }
 
   const chunks = chunkText(text, displayName, { auto: true });
-  let success = 0;
 
+  let success = 0;
   for (const chunk of chunks) {
     const vector = await embedText(chunk.text);
     await upsertChunk(chunk, vector, sourceUrl);
@@ -150,31 +152,31 @@ app.post("/training", upload.array("files"), async (req, res) => {
     });
   }
 
-  // Parse customNames kalau ada (JSON array atau string dari form field)
+  // Parse customNames - support: JSON array, comma-separated, atau query param
   let customNames = [];
-  if (req.body.customNames) {
+  const customNamesSource = req.body.customNames || req.query.customNames;
+  if (customNamesSource) {
     try {
-      // Coba parse sebagai JSON array dulu
-      const parsed = JSON.parse(req.body.customNames);
+      const parsed = JSON.parse(customNamesSource);
       customNames = Array.isArray(parsed) ? parsed : [parsed];
     } catch (e) {
-      // Kalau bukan JSON, anggap sebagai string biasa
-      customNames = [req.body.customNames];
+      customNames = customNamesSource.split(',').map(s => s.trim()).filter(s => s);
     }
   }
+  console.log("DEBUG customNames:", customNames);
 
-  // Parse sourceUrls kalau ada (JSON array atau string dari form field)
+  // Parse sourceUrls - support: JSON array, comma-separated, atau query param
   let sourceUrls = [];
-  if (req.body.sourceUrls) {
+  const sourceUrlsSource = req.body.sourceUrls || req.query.sourceUrls;
+  if (sourceUrlsSource) {
     try {
-      // Coba parse sebagai JSON array dulu
-      const parsed = JSON.parse(req.body.sourceUrls);
+      const parsed = JSON.parse(sourceUrlsSource);
       sourceUrls = Array.isArray(parsed) ? parsed : [parsed];
     } catch (e) {
-      // Kalau bukan JSON, anggap sebagai string biasa
-      sourceUrls = [req.body.sourceUrls];
+      sourceUrls = sourceUrlsSource.split(',').map(s => s.trim()).filter(s => s);
     }
   }
+  console.log("DEBUG sourceUrls:", sourceUrls);
 
   trainingStatus.isRunning = true;
   const processed = [];
