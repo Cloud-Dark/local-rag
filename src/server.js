@@ -333,7 +333,7 @@ app.get("/health", async (req, res) => {
 //
 //  Query params:
 //    filesOnly=true  — hapus data dari file tertentu saja
-//    fileName=xxx    — nama file yang akan dihapus
+//    fileName=xxx    — nama file yang akan dihapus (sesuai customName atau fileName)
 //
 //  Response:
 //  {
@@ -358,6 +358,18 @@ app.delete("/reset", async (req, res) => {
           deletedCount++;
         }
       }
+      
+      // Kalau tidak ada yang dihapus, berikan info nama file yang tersedia
+      if (deletedCount === 0) {
+        const availableFiles = [...new Set(allItems.map(item => item.metadata?.fileName).filter(Boolean))];
+        return res.status(404).json({
+          success: false,
+          message: `File "${fileName}" tidak ditemukan`,
+          availableFiles,
+          hint: "Gunakan GET /get-list untuk melihat daftar file yang tersedia",
+        });
+      }
+      
       res.json({
         success: true,
         message: `Data dari file "${fileName}" dihapus`,
