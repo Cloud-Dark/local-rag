@@ -15,6 +15,7 @@ import fs from "fs";
 import path from "path";
 import swaggerUi from "swagger-ui-express";
 import yaml from "yamljs";
+import { createServer } from "net";
 import { CONFIG } from "./config.js";
 import { loadAndChunkAll, chunkText } from "./loader.js";
 import { embedText, initEmbedder } from "./embedder.js";
@@ -358,7 +359,7 @@ app.use((req, res) => {
 // ─────────────────────────────────────────
 function findAvailablePort(startPort) {
   return new Promise((resolve, reject) => {
-    const server = require('net').createServer();
+    const server = createServer();
     server.unref();
     server.on('error', (err) => {
       if (err.code === 'EADDRINUSE') {
