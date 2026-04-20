@@ -1,0 +1,21 @@
+{
+  "name": "rag-local",
+  "version": "1.0.0",
+  "description": "Local RAG system with GGUF models + Vectra",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "ingest": "node src/ingest.js",
+    "ingest:reset": "node src/ingest.js --reset",
+    "search": "node src/search.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "multer": "^1.4.5-lts.1",
+    "node-llama-cpp": "^3.1.1",
+    "pdf-parse": "^1.1.1",
+    "swagger-ui-express": "^5.0.1",
+    "vectra": "^0.9.0",
+    "yamljs": "^0.3.0"
+  }
+}

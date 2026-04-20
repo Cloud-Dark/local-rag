@@ -1,0 +1,329 @@
+openapi: 3.0.0
+info:
+  title: RAG Local API
+  description: API untuk semantic search dokumen menggunakan Retrieval-Augmented Generation (RAG)
+  version: 1.0.0
+  contact:
+    name: RAG Local
+
+servers:
+  - url: http://localhost:3000
+    description: Local development server
+
+tags:
+  - name: Health
+    description: Health check endpoint
+  - name: Training
+    description: Upload dan index dokumen
+  - name: Search
+    description: Semantic search dokumen
+  - name: Documents
+    description: Lihat daftar dokumen yang sudah di-training
+  - name: Reset
+    description: Hapus data dari database
+
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health check
+      description: Cek status server dan database
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Server sehat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /training:
+    post:
+      tags:
+        - Training
+      summary: Upload dan index dokumen
+      description: Upload file PDF, TXT, atau MD untuk di-index ke vector database
+      operationId: uploadDocuments
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                files:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                  description: File dokumen (PDF, TXT, MD) - bisa multiple
+      responses:
+        '200':
+          description: Dokumen berhasil di-index
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrainingResponse'
+        '400':
+          description: Tidak ada file yang diupload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Training sedang berjalan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Error saat memproses dokumen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /get-list:
+    get:
+      tags:
+        - Documents
+      summary: Lihat daftar dokumen
+      description: Lihat semua dokumen yang sudah di-training beserta informasinya
+      operationId: getDocumentList
+      responses:
+        '200':
+          description: Daftar dokumen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentListResponse'
+        '500':
+          description: Error mengambil data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /search:
+    post:
+      tags:
+        - Search
+      summary: Semantic search
+      description: Cari chunk dokumen paling relevan berdasarkan query
+      operationId: searchDocuments
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SearchRequest'
+      responses:
+        '200':
+          description: Hasil search
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResponse'
+        '400':
+          description: Query tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Error saat search
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /reset:
+    delete:
+      tags:
+        - Reset
+      summary: Hapus data dari database
+      description: Hapus semua data atau data dari file tertentu
+      operationId: resetDatabase
+      parameters:
+        - name: filesOnly
+          in: query
+          description: Hapus data dari file tertentu saja
+          schema:
+            type: boolean
+            default: false
+        - name: fileName
+          in: query
+          description: Nama file yang akan dihapus datanya
+          schema:
+            type: string
+          example: dokumen.pdf
+      responses:
+        '200':
+          description: Data berhasil dihapus
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResetResponse'
+        '500':
+          description: Error saat menghapus data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: ok
+        totalChunks:
+          type: integer
+          example: 56
+        isTrainingRunning:
+          type: boolean
+          example: false
+        embeddingModel:
+          type: string
+          example: ./models/nomic-embed-text-v1.5.Q4_K_S.gguf
+
+    TrainingResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        processed:
+          type: array
+          items:
+            type: object
+            properties:
+              fileName:
+                type: string
+                example: dokumen.pdf
+              chunks:
+                type: integer
+                example: 24
+        failed:
+          type: array
+          items:
+            type: object
+            properties:
+              fileName:
+                type: string
+              error:
+                type: string
+        totalChunksInDB:
+          type: integer
+          example: 80
+
+    DocumentListResponse:
+      type: object
+      properties:
+        totalChunks:
+          type: integer
+          example: 56
+        totalDocuments:
+          type: integer
+          example: 3
+        documents:
+          type: array
+          items:
+            type: object
+            properties:
+              fileName:
+                type: string
+                example: dokumen.pdf
+              chunks:
+                type: integer
+                example: 24
+              fileExists:
+                type: boolean
+                example: true
+              filePath:
+                type: string
+                example: ./documents/dokumen.pdf
+        lastTraining:
+          type: string
+          format: date-time
+          nullable: true
+          example: 2024-01-01T00:00:00.000Z
+        isTrainingRunning:
+          type: boolean
+          example: false
+
+    SearchRequest:
+      type: object
+      required:
+        - query
+      properties:
+        query:
+          type: string
+          description: Pertanyaan atau teks untuk dicari
+          example: apa itu machine learning?
+        topK:
+          type: integer
+          description: Jumlah hasil yang dikembalikan (default: 3)
+          example: 3
+          default: 3
+
+    SearchResponse:
+      type: object
+      properties:
+        query:
+          type: string
+          example: apa itu machine learning?
+        topK:
+          type: integer
+          example: 3
+        results:
+          type: array
+          items:
+            type: object
+            properties:
+              rank:
+                type: integer
+                example: 1
+              score:
+                type: number
+                format: float
+                example: 0.921
+              fileName:
+                type: string
+                example: intro-ml.pdf
+              chunkIndex:
+                type: integer
+                example: 4
+              text:
+                type: string
+                example: Machine learning adalah...
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          example: Tidak ada file yang diupload
+
+    ResetResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Semua data dihapus
+        deletedChunks:
+          type: integer
+          example: 56
+        remainingChunks:
+          type: integer
+          nullable: true
+          example: 0
