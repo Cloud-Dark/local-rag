@@ -30,22 +30,21 @@ app.use(express.json());
 // ─────────────────────────────────────────
 const swaggerDocument = yaml.load(path.join(process.cwd(), "swagger.yaml"));
 
-// Dynamic server URL based on request host
-swaggerDocument.servers = [
-  {
-    url: `http://localhost:${process.env.PORT || 3000}`,
-    description: "Local development server"
-  },
-  {
-    url: `http://0.0.0.0:${process.env.PORT || 3000}`,
-    description: "Server (all interfaces)"
-  }
-];
-
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument, {
-  // Use request host for "Try it out" requests
-  customCss: '.swagger-ui .topbar { display: none }'
-}));
+// Auto-detect server URL from request
+app.use("/api-docs", swaggerUi.serve, (req, res, next) => {
+  // Set dynamic server URL based on request host
+  const protocol = req.protocol;
+  const host = req.get('host');
+  swaggerDocument.servers = [
+    {
+      url: `${protocol}://${host}`,
+      description: "Current server"
+    }
+  ];
+  swaggerUi.setup(swaggerDocument, {
+    customCss: '.swagger-ui .topbar { display: none }'
+  })(req, res, next);
+});
 
 // ─────────────────────────────────────────
 //  Multer — simpan upload ke documents/
