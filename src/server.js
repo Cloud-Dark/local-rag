@@ -175,17 +175,35 @@ async function processFile(filePath, fileName, customName = null, sourceUrl = nu
 async function processUrl(url, customName = null) {
   const text = await fetchUrlContent(url);
   const displayName = customName || new URL(url).hostname;
-  
+
   const chunks = chunkText(text, displayName, { auto: true });
-  
+
   let success = 0;
   for (const chunk of chunks) {
     const vector = await embedText(chunk.text);
     await upsertChunk(chunk, vector, url);
     success++;
   }
-  
+
   return { fileName: displayName, chunks: success, sourceUrl: url };
+}
+
+// ─────────────────────────────────────────
+//  Helper — proses direct text jadi chunks + embed + simpan
+// ─────────────────────────────────────────
+async function processText(text, customName = null, sourceUrl = null) {
+  const displayName = customName || `Text_${Date.now()}`;
+
+  const chunks = chunkText(text, displayName, { auto: true });
+
+  let success = 0;
+  for (const chunk of chunks) {
+    const vector = await embedText(chunk.text);
+    await upsertChunk(chunk, vector, sourceUrl);
+    success++;
+  }
+
+  return { fileName: displayName, chunks: success, sourceUrl };
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -211,13 +229,13 @@ async function processUrl(url, customName = null) {
 apiRouter.post("/training", upload.array("files"), async (req, res) => {
   // Support both JSON body and form-data
   const body = { ...req.body, ...req.query };
-  
+
   if (!req.files || req.files.length === 0) {
-    // Check if URLs are provided instead
-    if (!body.urls && !body.url) {
+    // Check if URLs or text are provided instead
+    if (!body.urls && !body.url && !body.text) {
       return res.status(400).json({
         success: false,
-        error: "Tidak ada file atau URL yang diupload. Gunakan field 'files' atau 'urls'.",
+        error: "Tidak ada file, URL, atau text yang diupload. Gunakan field 'files', 'urls', atau 'text'.",
       });
     }
   }
@@ -300,6 +318,18 @@ apiRouter.post("/training", upload.array("files"), async (req, res) => {
       }
     }
 
+    // Process direct text
+    if (body.text) {
+      try {
+        const textCustomName = customNames[req.files?.length + urls.length] || null;
+        const textSourceUrl = sourceUrls[req.files?.length + urls.length] || null;
+        const result = await processText(body.text, textCustomName, textSourceUrl);
+        processed.push(result);
+      } catch (err) {
+        failed.push({ fileName: "Text input", error: err.message });
+      }
+    }
+
     const stats = await getStats();
     const result = {
       success: true,
@@ -343,19 +373,44 @@ apiRouter.get("/get-list", async (req, res) => {
     const index = await getIndex();
     const allItems = await index.listItems();
 
+    console.log("DEBUG get-list: allItems =", allItems.map(i => ({
+      id: i.id,
+      fileName: i.metadata?.fileName,
+      sourceUrl: i.metadata?.sourceUrl,
+    })));
+
     // Group by fileName
     const docMap = {};
     for (const item of allItems) {
       const name = item.metadata?.fileName || "unknown";
+      const sourceUrl = item.metadata?.sourceUrl;
+      
       if (!docMap[name]) {
-        docMap[name] = { fileName: name, chunks: 0 };
+        docMap[name] = { 
+          fileName: name, 
+          chunks: 0,
+          sourceUrl: sourceUrl || null,
+        };
 
-        // Cek apakah file masih ada di disk
-        const filePath = path.join(CONFIG.DOCUMENTS_DIR, name);
-        docMap[name].fileExists = fs.existsSync(filePath);
-        docMap[name].filePath = filePath;
+        // Cek apakah file masih ada di disk (hanya untuk file, bukan URL)
+        if (sourceUrl) {
+          // Ini dari URL, tidak ada file fisik
+          docMap[name].fileExists = false;
+          docMap[name].filePath = null;
+          docMap[name].isUrl = true;
+        } else {
+          // Ini dari file
+          const filePath = path.join(CONFIG.DOCUMENTS_DIR, name);
+          docMap[name].fileExists = fs.existsSync(filePath);
+          docMap[name].filePath = filePath;
+          docMap[name].isUrl = false;
+        }
       }
       docMap[name].chunks++;
+      // Update sourceUrl jika ada
+      if (sourceUrl && !docMap[name].sourceUrl) {
+        docMap[name].sourceUrl = sourceUrl;
+      }
     }
 
     res.json({
@@ -366,6 +421,7 @@ apiRouter.get("/get-list", async (req, res) => {
       isTrainingRunning: trainingStatus.isRunning,
     });
   } catch (err) {
+    console.error("ERROR get-list:", err);
     res.status(500).json({ success: false, error: err.message });
   }
 });
