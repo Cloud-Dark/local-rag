@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "node src/server.js",
+    "start:dev": "set PORT=3001 && node src/server.js",
     "ingest": "node src/ingest.js",
     "ingest:reset": "node src/ingest.js --reset",
     "search": "node src/search.js"

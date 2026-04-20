@@ -354,12 +354,37 @@ app.use((req, res) => {
 // ─────────────────────────────────────────
 //  Start server
 // ─────────────────────────────────────────
-const PORT = process.env.PORT || 3000;
+//  Find available port
+// ─────────────────────────────────────────
+function findAvailablePort(startPort) {
+  return new Promise((resolve, reject) => {
+    const server = require('net').createServer();
+    server.unref();
+    server.on('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+        // Port sudah digunakan, coba port berikutnya
+        server.close();
+        resolve(findAvailablePort(startPort + 1));
+      } else {
+        reject(err);
+      }
+    });
+    server.on('listening', () => {
+      server.close(() => resolve(startPort));
+    });
+    server.listen(startPort);
+  });
+}
+
+const DEFAULT_PORT = process.env.PORT || 3000;
 
 async function start() {
   // Warm up embedding model sebelum server ready
   console.log("🔧 Inisialisasi embedding model...");
   await initEmbedder();
+
+  // Cari port yang tersedia
+  const PORT = await findAvailablePort(DEFAULT_PORT);
 
   app.listen(PORT, () => {
     console.log("\n═══════════════════════════════════════");
