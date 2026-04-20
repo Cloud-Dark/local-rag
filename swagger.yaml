@@ -58,6 +58,10 @@ paths:
                     type: string
                     format: binary
                   description: File dokumen (PDF, TXT, MD) - bisa multiple
+                customNames:
+                  type: string
+                  description: JSON array nama custom untuk setiap file (opsional). Contoh: ["KB_Exit_Clearance","Dokumen2"]
+                  example: '["KB_Exit_Clearance","Dokumen2"]'
       responses:
         '200':
           description: Dokumen berhasil di-index

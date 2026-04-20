@@ -91,9 +91,10 @@ let trainingStatus = {
 // ─────────────────────────────────────────
 //  Helper — proses 1 file jadi chunks + embed + simpan
 // ─────────────────────────────────────────
-async function processFile(filePath, fileName) {
+async function processFile(filePath, fileName, customName = null) {
   const ext = path.extname(fileName).toLowerCase();
   let text = "";
+  const displayName = customName || fileName; // Pakai custom name kalau ada
 
   if (ext === ".pdf") {
     const buffer = fs.readFileSync(filePath);
@@ -103,7 +104,7 @@ async function processFile(filePath, fileName) {
     text = fs.readFileSync(filePath, "utf-8");
   }
 
-  const chunks = chunkText(text, fileName);
+  const chunks = chunkText(text, displayName);
   let success = 0;
 
   for (const chunk of chunks) {
@@ -112,7 +113,7 @@ async function processFile(filePath, fileName) {
     success++;
   }
 
-  return { fileName, chunks: success };
+  return { fileName: displayName, chunks: success };
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -121,6 +122,7 @@ async function processFile(filePath, fileName) {
 //
 //  Body  : multipart/form-data
 //  Field : files (bisa multiple)
+//  Field : customNames (optional, JSON array)
 //
 //  Response:
 //  {
@@ -147,14 +149,26 @@ app.post("/training", upload.array("files"), async (req, res) => {
     });
   }
 
+  // Parse customNames kalau ada (JSON string dari form field)
+  let customNames = [];
+  if (req.body.customNames) {
+    try {
+      customNames = JSON.parse(req.body.customNames);
+    } catch (e) {
+      customNames = [];
+    }
+  }
+
   trainingStatus.isRunning = true;
   const processed = [];
   const failed = [];
 
   try {
-    for (const file of req.files) {
+    for (let i = 0; i < req.files.length; i++) {
+      const file = req.files[i];
       try {
-        const result = await processFile(file.path, file.originalname || file.filename);
+        const customName = customNames[i] || null;
+        const result = await processFile(file.path, file.originalname || file.filename, customName);
         processed.push(result);
       } catch (err) {
         failed.push({ fileName: file.originalname, error: err.message });
