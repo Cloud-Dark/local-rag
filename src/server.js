@@ -29,6 +29,19 @@ app.use(express.json());
 //  Swagger UI
 // ─────────────────────────────────────────
 const swaggerDocument = yaml.load(path.join(process.cwd(), "swagger.yaml"));
+
+// Dynamic server URL based on actual host
+swaggerDocument.servers = [
+  {
+    url: `http://localhost:${process.env.PORT || 3000}`,
+    description: "Local development server"
+  },
+  {
+    url: `http://0.0.0.0:${process.env.PORT || 3000}`,
+    description: "Server (all interfaces)"
+  }
+];
+
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // ─────────────────────────────────────────
