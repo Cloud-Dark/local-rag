@@ -29,13 +29,30 @@ app.use(express.json());
 // ─────────────────────────────────────────
 //  Static Files — UI
 // ─────────────────────────────────────────
+//  Static Files — UI
+// ─────────────────────────────────────────
 const publicPath = path.join(process.cwd(), "public");
 app.use(express.static(publicPath));
 
-// Root route - serve index.html
-app.get("/", (req, res) => {
+// UI Routes
+app.get("/ui", (req, res) => {
   res.sendFile(path.join(publicPath, "index.html"));
 });
+app.get("/ui/*", (req, res) => {
+  res.sendFile(path.join(publicPath, "index.html"));
+});
+
+// Root redirect to UI
+app.get("/", (req, res) => {
+  res.redirect("/ui");
+});
+
+// ─────────────────────────────────────────
+//  API Router — all routes under /api
+// ─────────────────────────────────────────
+const apiRouter = express.Router();
+apiRouter.use(express.json());
+app.use("/api", apiRouter);
 
 // ─────────────────────────────────────────
 //  Swagger UI
@@ -43,7 +60,7 @@ app.get("/", (req, res) => {
 const swaggerDocument = yaml.load(path.join(process.cwd(), "swagger.yaml"));
 
 // Auto-detect server URL from request
-app.use("/api-docs", swaggerUi.serve, (req, res, next) => {
+app.use("/api/api-docs", swaggerUi.serve, (req, res, next) => {
   // Set dynamic server URL based on request host
   const protocol = req.protocol;
   const host = req.get('host');
@@ -191,7 +208,7 @@ async function processUrl(url, customName = null) {
 //    "totalChunksInDB": 56
 //  }
 // ═══════════════════════════════════════════════════════════
-app.post("/training", upload.array("files"), async (req, res) => {
+apiRouter.post("/training", upload.array("files"), async (req, res) => {
   // Support both JSON body and form-data
   const body = { ...req.body, ...req.query };
   
@@ -321,7 +338,7 @@ app.post("/training", upload.array("files"), async (req, res) => {
 //    "lastTraining": "2024-01-01T00:00:00.000Z"
 //  }
 // ═══════════════════════════════════════════════════════════
-app.get("/get-list", async (req, res) => {
+apiRouter.get("/get-list", async (req, res) => {
   try {
     const index = await getIndex();
     const allItems = await index.listItems();
@@ -378,7 +395,7 @@ app.get("/get-list", async (req, res) => {
 //    ]
 //  }
 // ═══════════════════════════════════════════════════════════
-app.post("/search", async (req, res) => {
+apiRouter.post("/search", async (req, res) => {
   const { query, topK } = req.body;
 
   if (!query || typeof query !== "string" || !query.trim()) {
@@ -413,7 +430,7 @@ app.post("/search", async (req, res) => {
 // ─────────────────────────────────────────
 //  Health check
 // ─────────────────────────────────────────
-app.get("/health", async (req, res) => {
+apiRouter.get("/health", async (req, res) => {
   const stats = await getStats();
   res.json({
     status: "ok",
@@ -438,7 +455,7 @@ app.get("/health", async (req, res) => {
 //    "deletedChunks": 56
 //  }
 // ═══════════════════════════════════════════════════════════
-app.delete("/reset", async (req, res) => {
+apiRouter.delete("/reset", async (req, res) => {
   const { filesOnly, fileName } = req.query;
 
   try {
@@ -542,14 +559,14 @@ async function start() {
     console.log("       RAG API Server — Running!        ");
     console.log("═══════════════════════════════════════");
     console.log(`  🚀 URL        : http://localhost:${PORT}`);
-    console.log(`  🎨 Web UI     : http://localhost:${PORT}`);
-    console.log(`  📖 Swagger UI : http://localhost:${PORT}/api-docs`);
-    console.log(`  📮 Endpoints:`);
-    console.log(`     POST   http://localhost:${PORT}/training`);
-    console.log(`     GET    http://localhost:${PORT}/get-list`);
-    console.log(`     POST   http://localhost:${PORT}/search`);
-    console.log(`     GET    http://localhost:${PORT}/health`);
-    console.log(`     DELETE http://localhost:${PORT}/reset`);
+    console.log(`  🎨 Web UI     : http://localhost:${PORT}/ui`);
+    console.log(`  📖 Swagger UI : http://localhost:${PORT}/api/api-docs`);
+    console.log(`  📮 API Endpoints:`);
+    console.log(`     POST   http://localhost:${PORT}/api/training`);
+    console.log(`     GET    http://localhost:${PORT}/api/get-list`);
+    console.log(`     POST   http://localhost:${PORT}/api/search`);
+    console.log(`     GET    http://localhost:${PORT}/api/health`);
+    console.log(`     DELETE http://localhost:${PORT}/api/reset`);
     console.log("═══════════════════════════════════════\n");
   });
 }
