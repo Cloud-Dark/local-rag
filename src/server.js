@@ -150,23 +150,29 @@ app.post("/training", upload.array("files"), async (req, res) => {
     });
   }
 
-  // Parse customNames kalau ada (JSON array dari form field)
+  // Parse customNames kalau ada (JSON array atau string dari form field)
   let customNames = [];
   if (req.body.customNames) {
     try {
-      customNames = JSON.parse(req.body.customNames);
+      // Coba parse sebagai JSON array dulu
+      const parsed = JSON.parse(req.body.customNames);
+      customNames = Array.isArray(parsed) ? parsed : [parsed];
     } catch (e) {
-      customNames = [];
+      // Kalau bukan JSON, anggap sebagai string biasa
+      customNames = [req.body.customNames];
     }
   }
 
-  // Parse sourceUrls kalau ada (JSON array dari form field)
+  // Parse sourceUrls kalau ada (JSON array atau string dari form field)
   let sourceUrls = [];
   if (req.body.sourceUrls) {
     try {
-      sourceUrls = JSON.parse(req.body.sourceUrls);
+      // Coba parse sebagai JSON array dulu
+      const parsed = JSON.parse(req.body.sourceUrls);
+      sourceUrls = Array.isArray(parsed) ? parsed : [parsed];
     } catch (e) {
-      sourceUrls = [];
+      // Kalau bukan JSON, anggap sebagai string biasa
+      sourceUrls = [req.body.sourceUrls];
     }
   }
 
