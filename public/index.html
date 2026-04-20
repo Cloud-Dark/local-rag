@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RAG Local - Training & Search</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    :root {
+      --primary-color: #4f46e5;
+      --secondary-color: #7c3aed;
+    }
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding-bottom: 50px;
+    }
+    .navbar {
+      background: rgba(255,255,255,0.95) !important;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .navbar-brand {
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .main-container {
+      margin-top: 30px;
+    }
+    .card {
+      border: none;
+      border-radius: 15px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+      margin-bottom: 25px;
+    }
+    .card-header {
+      background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+      color: white;
+      border-radius: 15px 15px 0 0 !important;
+      font-weight: 600;
+      padding: 15px 20px;
+    }
+    .btn-gradient {
+      background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+      border: none;
+      color: white;
+      padding: 10px 25px;
+      border-radius: 8px;
+      font-weight: 500;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .btn-gradient:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 20px rgba(79, 70, 229, 0.4);
+      color: white;
+    }
+    .btn-gradient:disabled {
+      opacity: 0.6;
+      transform: none;
+    }
+    .form-control, .form-select {
+      border-radius: 8px;
+      border: 2px solid #e5e7eb;
+      padding: 10px 15px;
+    }
+    .form-control:focus, .form-select:focus {
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    }
+    .dropzone {
+      border: 2px dashed #d1d5db;
+      border-radius: 10px;
+      padding: 40px 20px;
+      text-align: center;
+      transition: all 0.3s;
+      cursor: pointer;
+      background: #f9fafb;
+    }
+    .dropzone:hover, .dropzone.dragover {
+      border-color: var(--primary-color);
+      background: #eef2ff;
+    }
+    .dropzone i {
+      font-size: 3rem;
+      color: #9ca3af;
+      margin-bottom: 10px;
+    }
+    .file-list {
+      margin-top: 15px;
+    }
+    .file-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 15px;
+      background: #f9fafb;
+      border-radius: 8px;
+      margin-bottom: 8px;
+    }
+    .file-item .btn-remove {
+      color: #ef4444;
+      cursor: pointer;
+      padding: 5px 10px;
+    }
+    .file-item .btn-remove:hover {
+      background: #fee2e2;
+      border-radius: 5px;
+    }
+    .url-input-group {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .url-list {
+      margin-top: 15px;
+    }
+    .url-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 15px;
+      background: #e0e7ff;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      font-size: 0.9rem;
+    }
+    .url-item i {
+      color: var(--primary-color);
+      margin-right: 10px;
+    }
+    .search-result {
+      padding: 15px;
+      border-left: 4px solid var(--primary-color);
+      background: #f9fafb;
+      border-radius: 0 8px 8px 0;
+      margin-bottom: 15px;
+    }
+    .search-result .score {
+      display: inline-block;
+      background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+      color: white;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+    .search-result .source-link {
+      color: var(--primary-color);
+      text-decoration: none;
+      font-size: 0.85rem;
+    }
+    .search-result .source-link:hover {
+      text-decoration: underline;
+    }
+    .search-result .text-preview {
+      color: #4b5563;
+      font-size: 0.9rem;
+      line-height: 1.6;
+      max-height: 150px;
+      overflow-y: auto;
+    }
+    .search-result .meta-info {
+      font-size: 0.8rem;
+      color: #6b7280;
+      margin-top: 10px;
+    }
+    .status-badge {
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .status-badge.success {
+      background: #d1fae5;
+      color: #065f46;
+    }
+    .status-badge.error {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+    .loading-spinner {
+      display: inline-block;
+      width: 1rem;
+      height: 1rem;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 0.8s linear infinite;
+      margin-right: 8px;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .nav-pills .nav-link {
+      color: #4b5563;
+      border-radius: 8px;
+      padding: 10px 20px;
+      margin-right: 5px;
+    }
+    .nav-pills .nav-link.active {
+      background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    }
+    .document-item {
+      padding: 15px;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      margin-bottom: 10px;
+      transition: all 0.2s;
+    }
+    .document-item:hover {
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    .document-item .doc-icon {
+      font-size: 2rem;
+      color: var(--primary-color);
+    }
+    .toast-container {
+      position: fixed;
+      top: 100px;
+      right: 20px;
+      z-index: 1050;
+    }
+  </style>
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top">
+    <div class="container">
+      <a class="navbar-brand" href="#">
+        <i class="bi bi-robot"></i> RAG Local
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item">
+            <a class="nav-link" href="/api-docs" target="_blank">
+              <i class="bi bi-book"></i> API Docs
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Container -->
+  <div class="container main-container">
+    
+    <!-- Tabs -->
+    <ul class="nav nav-pills mb-4" id="mainTab" role="tablist">
+      <li class="nav-item">
+        <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#training-tab">
+          <i class="bi bi-upload"></i> Training
+        </button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="pill" data-bs-target="#search-tab">
+          <i class="bi bi-search"></i> Search
+        </button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="pill" data-bs-target="#documents-tab">
+          <i class="bi bi-file-earmark-text"></i> Documents
+        </button>
+      </li>
+    </ul>
+
+    <div class="tab-content" id="mainTabContent">
+      
+      <!-- Training Tab -->
+      <div class="tab-pane fade show active" id="training-tab">
+        <div class="row">
+          <div class="col-lg-6">
+            <!-- File Upload Card -->
+            <div class="card">
+              <div class="card-header">
+                <i class="bi bi-file-earmark-arrow-up"></i> Upload Files
+              </div>
+              <div class="card-body">
+                <div class="dropzone" id="dropzone">
+                  <i class="bi bi-cloud-upload"></i>
+                  <h5>Drag & drop files here</h5>
+                  <p class="text-muted mb-0">or click to browse (PDF, TXT, MD)</p>
+                  <input type="file" id="fileInput" multiple accept=".pdf,.txt,.md" style="display: none;">
+                </div>
+                <div class="file-list" id="fileList"></div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="col-lg-6">
+            <!-- URL Input Card -->
+            <div class="card">
+              <div class="card-header">
+                <i class="bi bi-link-45deg"></i> Add URLs
+              </div>
+              <div class="card-body">
+                <div class="url-input-group">
+                  <input type="url" class="form-control" id="urlInput" placeholder="https://example.com/page">
+                  <button class="btn btn-gradient" onclick="addUrl()">
+                    <i class="bi bi-plus-lg"></i> Add
+                  </button>
+                </div>
+                <div class="url-list" id="urlList"></div>
+              </div>
+            </div>
+
+            <!-- Options Card -->
+            <div class="card">
+              <div class="card-header">
+                <i class="bi bi-sliders"></i> Options
+              </div>
+              <div class="card-body">
+                <div class="mb-3">
+                  <label class="form-label">Custom Names (optional)</label>
+                  <input type="text" class="form-control" id="customNamesInput" placeholder="Doc1, Doc2, FAQ Page">
+                  <small class="text-muted">Comma-separated names for each file/URL</small>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Source URLs for Files (optional)</label>
+                  <input type="text" class="form-control" id="sourceUrlsInput" placeholder="https://example.com/doc1, https://example.com/doc2">
+                  <small class="text-muted">Original source URLs for uploaded files</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Train Button -->
+        <div class="text-center mt-4">
+          <button class="btn btn-gradient btn-lg" id="trainBtn" onclick="startTraining()">
+            <i class="bi bi-play-circle"></i> Start Training
+          </button>
+        </div>
+
+        <!-- Training Progress -->
+        <div class="card mt-4" id="progressCard" style="display: none;">
+          <div class="card-header">
+            <i class="bi bi-gear"></i> Training Progress
+          </div>
+          <div class="card-body">
+            <div class="progress mb-3">
+              <div class="progress-bar progress-bar-striped progress-bar-animated" id="progressBar" style="width: 0%"></div>
+            </div>
+            <div id="progressText" class="text-center text-muted">Initializing...</div>
+            <div id="trainingResults" class="mt-3"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Search Tab -->
+      <div class="tab-pane fade" id="search-tab">
+        <div class="card">
+          <div class="card-header">
+            <i class="bi bi-search"></i> Semantic Search
+          </div>
+          <div class="card-body">
+            <div class="row mb-3">
+              <div class="col-md-8">
+                <input type="text" class="form-control form-control-lg" id="searchQuery" placeholder="Ask a question..." onkeypress="if(event.key==='Enter')performSearch()">
+              </div>
+              <div class="col-md-2">
+                <select class="form-select" id="topKSelect">
+                  <option value="3">Top 3</option>
+                  <option value="5">Top 5</option>
+                  <option value="10">Top 10</option>
+                </select>
+              </div>
+              <div class="col-md-2">
+                <button class="btn btn-gradient w-100" onclick="performSearch()">
+                  <i class="bi bi-search"></i> Search
+                </button>
+              </div>
+            </div>
+            <div id="searchResults"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Documents Tab -->
+      <div class="tab-pane fade" id="documents-tab">
+        <div class="card">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-file-earmark-text"></i> Trained Documents</span>
+            <button class="btn btn-sm btn-light" onclick="loadDocuments()">
+              <i class="bi bi-arrow-clockwise"></i> Refresh
+            </button>
+          </div>
+          <div class="card-body">
+            <div id="documentsList"></div>
+            <div id="documentsEmpty" class="text-center text-muted py-5">
+              <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+              <p class="mt-3">No documents trained yet. Go to Training tab to add documents.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // State
+    let selectedFiles = [];
+    let urls = [];
+
+    // API Base URL (auto-detect)
+    const API_BASE = window.location.origin;
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      setupDropzone();
+      loadDocuments();
+    });
+
+    // Dropzone Setup
+    function setupDropzone() {
+      const dropzone = document.getElementById('dropzone');
+      const fileInput = document.getElementById('fileInput');
+
+      dropzone.addEventListener('click', () => fileInput.click());
+      fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
+
+      dropzone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropzone.classList.add('dragover');
+      });
+
+      dropzone.addEventListener('dragleave', () => {
+        dropzone.classList.remove('dragover');
+      });
+
+      dropzone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropzone.classList.remove('dragover');
+        handleFiles(e.dataTransfer.files);
+      });
+    }
+
+    // Handle Files
+    function handleFiles(files) {
+      const validTypes = ['.pdf', '.txt', '.md'];
+      for (let file of files) {
+        const ext = '.' + file.name.split('.').pop().toLowerCase();
+        if (validTypes.includes(ext)) {
+          selectedFiles.push(file);
+        } else {
+          showToast(`Skipped ${file.name}: Invalid format`, 'error');
+        }
+      }
+      renderFileList();
+    }
+
+    // Render File List
+    function renderFileList() {
+      const fileList = document.getElementById('fileList');
+      fileList.innerHTML = selectedFiles.map((file, index) => `
+        <div class="file-item">
+          <span><i class="bi bi-file-earmark"></i> ${file.name}</span>
+          <span class="btn-remove" onclick="removeFile(${index})">
+            <i class="bi bi-x-lg"></i>
+          </span>
+        </div>
+      `).join('');
+    }
+
+    // Remove File
+    function removeFile(index) {
+      selectedFiles.splice(index, 1);
+      renderFileList();
+    }
+
+    // Add URL
+    function addUrl() {
+      const urlInput = document.getElementById('urlInput');
+      const url = urlInput.value.trim();
+      if (url && isValidUrl(url)) {
+        urls.push(url);
+        renderUrlList();
+        urlInput.value = '';
+      } else {
+        showToast('Please enter a valid URL', 'error');
+      }
+    }
+
+    // Render URL List
+    function renderUrlList() {
+      const urlList = document.getElementById('urlList');
+      urlList.innerHTML = urls.map((url, index) => `
+        <div class="url-item">
+          <span><i class="bi bi-link-45deg"></i> ${url}</span>
+          <span class="btn-remove" onclick="removeUrl(${index})">
+            <i class="bi bi-x-lg"></i>
+          </span>
+        </div>
+      `).join('');
+    }
+
+    // Remove URL
+    function removeUrl(index) {
+      urls.splice(index, 1);
+      renderUrlList();
+    }
+
+    // Validate URL
+    function isValidUrl(string) {
+      try {
+        new URL(string);
+        return true;
+      } catch (_) {
+        return false;
+      }
+    }
+
+    // Start Training
+    async function startTraining() {
+      if (selectedFiles.length === 0 && urls.length === 0) {
+        showToast('Please select files or add URLs', 'error');
+        return;
+      }
+
+      const trainBtn = document.getElementById('trainBtn');
+      const progressCard = document.getElementById('progressCard');
+      const progressBar = document.getElementById('progressBar');
+      const progressText = document.getElementById('progressText');
+
+      trainBtn.disabled = true;
+      progressCard.style.display = 'block';
+      progressBar.style.width = '0%';
+      progressText.textContent = 'Starting training...';
+
+      const formData = new FormData();
+      
+      // Add files
+      selectedFiles.forEach(file => formData.append('files', file));
+      
+      // Add URLs
+      if (urls.length > 0) {
+        formData.append('urls', JSON.stringify(urls));
+      }
+      
+      // Add custom names
+      const customNames = document.getElementById('customNamesInput').value.trim();
+      if (customNames) {
+        formData.append('customNames', customNames);
+      }
+      
+      // Add source URLs
+      const sourceUrls = document.getElementById('sourceUrlsInput').value.trim();
+      if (sourceUrls) {
+        formData.append('sourceUrls', sourceUrls);
+      }
+
+      try {
+        const response = await fetch(`${API_BASE}/training`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        const result = await response.json();
+        progressBar.style.width = '100%';
+
+        if (result.success) {
+          progressText.textContent = `Training completed! ${result.processed.length} items processed.`;
+          renderTrainingResults(result);
+          showToast('Training completed successfully!', 'success');
+          loadDocuments();
+          // Reset
+          selectedFiles = [];
+          urls = [];
+          renderFileList();
+          renderUrlList();
+          document.getElementById('customNamesInput').value = '';
+          document.getElementById('sourceUrlsInput').value = '';
+          document.getElementById('fileInput').value = '';
+        } else {
+          progressText.textContent = 'Training failed!';
+          showToast(result.error || 'Training failed', 'error');
+        }
+      } catch (error) {
+        progressText.textContent = 'Error: ' + error.message;
+        showToast('Training error: ' + error.message, 'error');
+      }
+
+      trainBtn.disabled = false;
+    }
+
+    // Render Training Results
+    function renderTrainingResults(result) {
+      const resultsDiv = document.getElementById('trainingResults');
+      resultsDiv.innerHTML = `
+        <div class="row">
+          ${result.processed.map(item => `
+            <div class="col-md-6">
+              <div class="alert alert-success">
+                <i class="bi bi-check-circle"></i> 
+                <strong>${item.fileName}</strong>: ${item.chunks} chunks
+                ${item.sourceUrl ? `<br><small>Source: ${item.sourceUrl}</small>` : ''}
+              </div>
+            </div>
+          `).join('')}
+          ${result.failed.map(item => `
+            <div class="col-md-6">
+              <div class="alert alert-danger">
+                <i class="bi bi-x-circle"></i> 
+                <strong>${item.fileName || item.url}</strong>: ${item.error}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+        <div class="text-center mt-3">
+          <span class="badge bg-success">Total Chunks: ${result.totalChunksInDB}</span>
+        </div>
+      `;
+    }
+
+    // Perform Search
+    async function performSearch() {
+      const query = document.getElementById('searchQuery').value.trim();
+      const topK = document.getElementById('topKSelect').value;
+      const resultsDiv = document.getElementById('searchResults');
+
+      if (!query) {
+        showToast('Please enter a search query', 'error');
+        return;
+      }
+
+      resultsDiv.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary"></div><p class="mt-2">Searching...</p></div>';
+
+      try {
+        const response = await fetch(`${API_BASE}/search`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query, topK: parseInt(topK) }),
+        });
+
+        const result = await response.json();
+        
+        if (result.results && result.results.length > 0) {
+          resultsDiv.innerHTML = `
+            <h6 class="mb-3">Found ${result.results.length} results for "${result.query}"</h6>
+            ${result.results.map(r => `
+              <div class="search-result">
+                <span class="score"><i class="bi bi-graph-up"></i> Score: ${(r.score * 100).toFixed(1)}%</span>
+                ${r.sourceUrl ? `<a href="${r.sourceUrl}" target="_blank" class="source-link"><i class="bi bi-box-arrow-up-right"></i> ${r.sourceUrl}</a>` : ''}
+                <div class="text-preview">${escapeHtml(r.text)}</div>
+                <div class="meta-info">
+                  <i class="bi bi-file-earmark"></i> ${r.fileName} 
+                  <span class="ms-3"><i class="bi bi-hash"></i> Chunk #${r.chunkIndex}</span>
+                </div>
+              </div>
+            `).join('')}
+          `;
+        } else {
+          resultsDiv.innerHTML = '<div class="text-center py-4 text-muted"><i class="bi bi-inbox" style="font-size: 2rem;"></i><p class="mt-2">No results found</p></div>';
+        }
+      } catch (error) {
+        resultsDiv.innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+      }
+    }
+
+    // Load Documents
+    async function loadDocuments() {
+      const docsList = document.getElementById('documentsList');
+      const docsEmpty = document.getElementById('documentsEmpty');
+
+      try {
+        const response = await fetch(`${API_BASE}/get-list`);
+        const result = await response.json();
+
+        if (result.totalDocuments > 0) {
+          docsEmpty.style.display = 'none';
+          docsList.innerHTML = `
+            <div class="row">
+              ${result.documents.map(doc => `
+                <div class="col-md-6 col-lg-4">
+                  <div class="document-item">
+                    <div class="d-flex align-items-start">
+                      <i class="bi bi-file-earmark-text doc-icon me-3"></i>
+                      <div class="flex-grow-1">
+                        <h6 class="mb-1">${escapeHtml(doc.fileName)}</h6>
+                        <p class="text-muted mb-1 small">
+                          <i class="bi bi-layers"></i> ${doc.chunks} chunks
+                        </p>
+                        ${doc.fileExists ? 
+                          '<span class="badge bg-success">File exists</span>' : 
+                          '<span class="badge bg-warning">File missing</span>'
+                        }
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+            <div class="text-center mt-3">
+              <span class="badge bg-primary">Total: ${result.totalChunks} chunks from ${result.totalDocuments} documents</span>
+            </div>
+          `;
+        } else {
+          docsEmpty.style.display = 'block';
+          docsList.innerHTML = '';
+        }
+      } catch (error) {
+        docsList.innerHTML = `<div class="alert alert-danger">Error loading documents: ${error.message}</div>`;
+      }
+    }
+
+    // Show Toast
+    function showToast(message, type = 'info') {
+      const toastContainer = document.getElementById('toastContainer');
+      const bgClass = type === 'success' ? 'bg-success' : type === 'error' ? 'bg-danger' : 'bg-primary';
+      
+      const toast = document.createElement('div');
+      toast.className = `toast show ${bgClass} text-white`;
+      toast.innerHTML = `
+        <div class="toast-body d-flex justify-content-between align-items-center">
+          ${message}
+          <button type="button" class="btn-close btn-close-white" onclick="this.parentElement.parentElement.remove()"></button>
+        </div>
+      `;
+      toastContainer.appendChild(toast);
+      
+      setTimeout(() => toast.remove(), 5000);
+    }
+
+    // Escape HTML
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+  </script>
+</body>
+</html>

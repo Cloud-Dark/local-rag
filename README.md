@@ -78,7 +78,9 @@ npm start
 
 Server akan berjalan di `http://localhost:3000`
 
-**Swagger UI:** http://localhost:3000/api-docs
+**🎨 Web UI:** http://localhost:3000 — Interface grafis untuk training & search
+
+**📖 Swagger UI:** http://localhost:3000/api-docs — Dokumentasi API interaktif
 
 **Endpoints yang tersedia:**
 

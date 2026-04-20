@@ -27,6 +27,11 @@ const app = express();
 app.use(express.json());
 
 // ─────────────────────────────────────────
+//  Static Files — UI
+// ─────────────────────────────────────────
+app.use(express.static(path.join(process.cwd(), "public")));
+
+// ─────────────────────────────────────────
 //  Swagger UI
 // ─────────────────────────────────────────
 const swaggerDocument = yaml.load(path.join(process.cwd(), "swagger.yaml"));
@@ -412,6 +417,13 @@ app.get("/health", async (req, res) => {
   });
 });
 
+// ─────────────────────────────────────────
+//  Root — redirect to UI
+// ─────────────────────────────────────────
+app.get("/", (req, res) => {
+  res.redirect("/index.html");
+});
+
 // ═══════════════════════════════════════════════════════════
 //  DELETE /reset
 //  Hapus semua data dari vector database
@@ -531,6 +543,7 @@ async function start() {
     console.log("       RAG API Server — Running!        ");
     console.log("═══════════════════════════════════════");
     console.log(`  🚀 URL        : http://localhost:${PORT}`);
+    console.log(`  🎨 Web UI     : http://localhost:${PORT}`);
     console.log(`  📖 Swagger UI : http://localhost:${PORT}/api-docs`);
     console.log(`  📮 Endpoints:`);
     console.log(`     POST   http://localhost:${PORT}/training`);
