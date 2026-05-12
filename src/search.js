@@ -34,11 +34,16 @@ import { CONFIG } from "./config.js";
 export async function semanticSearch(query, topK = CONFIG.TOP_K) {
   const queryVector = await embedText(query);
   const rawResults = await searchSimilar(queryVector, topK);
+  const filteredResults = rawResults.filter((r) => r.score >= CONFIG.SEARCH_MIN_SCORE);
 
   return {
     query,
     topK,
-    results: rawResults.map((r, i) => ({
+    minScore: CONFIG.SEARCH_MIN_SCORE,
+    bestScore: rawResults.length > 0 ? parseFloat(rawResults[0].score.toFixed(4)) : null,
+    matched: filteredResults.length > 0,
+    filteredOut: rawResults.length - filteredResults.length,
+    results: filteredResults.map((r, i) => ({
       rank: i + 1,
       score: parseFloat(r.score.toFixed(4)),
       fileName: r.fileName,

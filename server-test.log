@@ -1,0 +1,25 @@
+📦 Metadata loaded: 16 documents
+🔧 Inisialisasi embedding model...
+🔧 Loading embedding model...
+✅ Embedding model siap!
+
+═══════════════════════════════════════
+       RAG API Server — Running!        
+═══════════════════════════════════════
+  🚀 URL        : http://localhost:3000
+  🎨 Web UI     : http://localhost:3000/ui
+  📖 Swagger UI : http://localhost:3000/api/api-docs
+  📮 API Endpoints:
+     POST   http://localhost:3000/api/training
+     GET    http://localhost:3000/api/get-list
+     POST   http://localhost:3000/api/search
+     GET    http://localhost:3000/api/health
+     DELETE http://localhost:3000/api/reset
+═══════════════════════════════════════
+
+📁 Vector index ditemukan di: ./db/vectra
+DEBUG customNames: []
+DEBUG sourceUrls: []
+DEBUG urls: []
+  💾 Text saved as: Text_1778582044616.txt
+💾 Metadata saved: 17 documents

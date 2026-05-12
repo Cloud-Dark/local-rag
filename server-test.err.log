@@ -1,0 +1,28 @@
+[node-llama-cpp] Failed to load a prebuilt binary for platform "win" "x64" with Vulkan support, falling back to using no GPU. Error: Error: spawn EPERM
+    at ChildProcess.spawn (node:internal/child_process:421:11)
+    at spawn (node:child_process:796:9)
+    at Object.fork (node:child_process:174:10)
+    at createTestProcess (file:///D:/project/local-rag/node_modules/node-llama-cpp/dist/bindings/utils/testBindingBinary.js:93:41)
+    at file:///D:/project/local-rag/node_modules/node-llama-cpp/dist/bindings/utils/testBindingBinary.js:172:26
+    at new Promise (<anonymous>)
+    at testBindingBinary (file:///D:/project/local-rag/node_modules/node-llama-cpp/dist/bindings/utils/testBindingBinary.js:164:9)
+    at async loadExistingLlamaBinary (file:///D:/project/local-rag/node_modules/node-llama-cpp/dist/bindings/getLlama.js:418:23)
+    at async getLlamaForOptions (file:///D:/project/local-rag/node_modules/node-llama-cpp/dist/bindings/getLlama.js:211:27)
+    at async initEmbedder (file:///D:/project/local-rag/src/embedder.js:14:12) {
+  errno: -4048,
+  code: 'EPERM',
+  syscall: 'spawn'
+}
+[node-llama-cpp] load: special_eos_id is not in special_eog_ids - the tokenizer config may be incorrect
+[node-llama-cpp] Using this model ("D:\project\local-rag\models\mxbai-embed-large-v1.Q8_0.gguf") to tokenize text and then detokenize it resulted in a different text. There might be an issue with the model or the tokenizer implementation. Using this model may not work as intended
+SyntaxError: Bad control character in string literal in JSON at position 38 (line 2 column 36)
+    at JSON.parse (<anonymous>)
+    at parse (D:\project\local-rag\node_modules\body-parser\lib\types\json.js:92:19)
+    at D:\project\local-rag\node_modules\body-parser\lib\read.js:128:18
+    at AsyncResource.runInAsyncScope (node:async_hooks:228:14)
+    at invokeCallback (D:\project\local-rag\node_modules\raw-body\index.js:238:16)
+    at done (D:\project\local-rag\node_modules\raw-body\index.js:227:7)
+    at IncomingMessage.onEnd (D:\project\local-rag\node_modules\raw-body\index.js:287:7)
+    at IncomingMessage.emit (node:events:508:28)
+    at endReadableNT (node:internal/streams/readable:1729:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)

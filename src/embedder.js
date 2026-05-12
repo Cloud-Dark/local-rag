@@ -1,3 +1,4 @@
+import fs from "fs";
 import { getLlama } from "node-llama-cpp";
 import { CONFIG } from "./config.js";
 
@@ -10,7 +11,11 @@ let _embeddingContext = null;
 export async function initEmbedder() {
   if (_embeddingContext) return _embeddingContext;
 
-  console.log("🔧 Loading embedding model...");
+  if (!fs.existsSync(CONFIG.EMBEDDING_MODEL_PATH)) {
+    throw new Error(`Embedding model tidak ditemukan: ${CONFIG.EMBEDDING_MODEL_PATH}`);
+  }
+
+  console.log(`🔧 Loading embedding model: ${CONFIG.EMBEDDING_MODEL_PATH}`);
   _llama = await getLlama();
 
   const model = await _llama.loadModel({

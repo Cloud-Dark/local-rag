@@ -64,7 +64,12 @@
     .doc-info { flex: 1; }
     .doc-name { font-size: 0.9rem; color: #333; }
     .doc-meta { font-size: 0.75rem; color: #999; margin-top: 4px; }
+    .doc-meta span { margin-right: 12px; }
     .doc-actions button { margin-left: 6px; padding: 4px 8px; font-size: 0.75rem; }
+    .doc-actions button.retrain { color: #2563eb; }
+    .doc-actions button.retrain:hover { background: #dbeafe; color: #1d4ed8; }
+    .doc-actions button.view { color: #16a34a; }
+    .doc-actions button.view:hover { background: #dcfce7; color: #15803d; }
     
     /* Empty State */
     .empty { text-align: center; padding: 40px 20px; color: #999; }
@@ -86,7 +91,11 @@
     <div class="card">
       <h3>1. Text Input</h3>
       <textarea id="textInput" placeholder="Paste your text here..."></textarea>
-      <input type="url" id="textSourceUrl" placeholder="Source URL (optional)" style="margin-top: 12px;">
+      <div style="display: flex; gap: 8px; margin-top: 12px;">
+        <input type="url" id="textSourceUrl" placeholder="Source URL (optional)" onkeypress="if(event.key==='Enter')addTextSourceUrl()" style="flex: 1;">
+        <button class="secondary" onclick="addTextSourceUrl()">Add URL</button>
+      </div>
+      <div class="items" id="textSourceUrlList" style="margin-top: 8px;"></div>
       <button onclick="trainText()" style="margin-top: 12px;" id="trainTextBtn">Train Text</button>
       <div id="textStatus"></div>
     </div>
@@ -119,7 +128,10 @@
     <div class="card">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
         <h3 style="margin: 0;">Documents</h3>
-        <button class="secondary" onclick="loadDocuments()">Refresh</button>
+        <div style="display: flex; gap: 8px;">
+          <button class="secondary" onclick="retrainAll()" id="retrainAllBtn" title="Retrain all documents with current model">🔄 Retrain All</button>
+          <button class="secondary" onclick="loadDocuments()">Refresh</button>
+        </div>
       </div>
       <div id="docList"></div>
       <div id="docEmpty" class="empty">
@@ -145,6 +157,7 @@
     const API = window.location.origin + '/api';
     let files = [];
     let urls = [];
+    let textSourceUrls = [];
 
     // Tab Switching
     function switchTab(tabId) {
@@ -152,8 +165,34 @@
       document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
       document.querySelector(`.tab[onclick="switchTab('${tabId}')"]`).classList.add('active');
       document.getElementById(tabId).classList.add('active');
-      
+
       if (tabId === 'list') loadDocuments();
+    }
+
+    // Text Source URL handling
+    function addTextSourceUrl() {
+      const input = document.getElementById('textSourceUrl');
+      const url = input.value.trim();
+      if (url && isValidUrl(url)) {
+        textSourceUrls.push(url);
+        renderTextSourceUrls();
+        input.value = '';
+      }
+    }
+
+    function renderTextSourceUrls() {
+      const list = document.getElementById('textSourceUrlList');
+      list.innerHTML = textSourceUrls.map((u, i) => `
+        <div class="item">
+          <span>${u}</span>
+          <button onclick="removeTextSourceUrl(${i})">✕</button>
+        </div>
+      `).join('');
+    }
+
+    function removeTextSourceUrl(i) {
+      textSourceUrls.splice(i, 1);
+      renderTextSourceUrls();
     }
 
     // File handling
@@ -211,7 +250,6 @@
     // Training Functions
     async function trainText() {
       const text = document.getElementById('textInput').value.trim();
-      const sourceUrl = document.getElementById('textSourceUrl').value.trim();
       const btn = document.getElementById('trainTextBtn');
       const status = document.getElementById('textStatus');
 
@@ -225,18 +263,28 @@
 
       const formData = new FormData();
       formData.append('text', text);
-      if (sourceUrl) {
-        formData.append('sourceUrls', sourceUrl);
+      
+      // Combine textSourceUrls array with any URL in the input field
+      const allSourceUrls = [...textSourceUrls];
+      const inputUrl = document.getElementById('textSourceUrl').value.trim();
+      if (inputUrl && isValidUrl(inputUrl)) {
+        allSourceUrls.push(inputUrl);
+      }
+      
+      if (allSourceUrls.length > 0) {
+        formData.append('sourceUrls', JSON.stringify(allSourceUrls));
       }
 
       try {
         const res = await fetch(`${API}/training`, { method: 'POST', body: formData });
         const result = await res.json();
-        
+
         if (result.success) {
           showStatus(status, `Done! ${result.processed.length} items, ${result.totalChunksInDB} chunks in DB`, 'success');
           document.getElementById('textInput').value = '';
           document.getElementById('textSourceUrl').value = '';
+          textSourceUrls = [];
+          renderTextSourceUrls();
         } else {
           showStatus(status, result.error || 'Failed', 'error');
         }
@@ -333,22 +381,41 @@
           list.innerHTML = `
             <div style="margin-bottom: 12px; font-size: 0.8rem; color: #999;">
               Total: ${data.totalChunks} chunks from ${data.documents.length} documents
+              ${data.embeddingModel ? `• Model: ${escapeHtml(data.embeddingModel.split('/').pop())}` : ''}
             </div>
-            ${data.documents.map(doc => `
+            ${data.documents.map(doc => {
+              // Handle both single URL and array of URLs
+              let sourceUrlLinks = '';
+              if (doc.sourceUrl) {
+                const urls = Array.isArray(doc.sourceUrl) ? doc.sourceUrl : [doc.sourceUrl];
+                sourceUrlLinks = urls.map(url => 
+                  `<a href="${url}" target="_blank" style="margin-left: 6px; font-size: 0.75rem; color: #666; text-decoration: none;">↗</a>`
+                ).join('');
+              }
+              
+              return `
               <div class="doc-item">
                 <div class="doc-info">
                   <div class="doc-name">
                     ${doc.isUrl ? '🌐 ' : '📄 '}
                     ${escapeHtml(doc.fileName)}
-                    ${doc.sourceUrl ? `<a href="${doc.sourceUrl}" target="_blank" style="margin-left: 6px; font-size: 0.75rem; color: #666;">↗</a>` : ''}
+                    ${sourceUrlLinks}
                   </div>
-                  <div class="doc-meta">${doc.chunks} chunks • ${doc.isUrl ? 'URL' : (doc.fileExists ? 'File exists' : 'File missing')}</div>
+                  <div class="doc-meta">
+                    <span>📊 ${doc.chunks} chunks</span>
+                    <span>📅 Created: ${formatDate(doc.createdDate)}</span>
+                    ${doc.lastRetrainedAt ? `<span>🔄 Retrained: ${formatDate(doc.lastRetrainedAt)}</span>` : ''}
+                    <span>🤖 ${escapeHtml(doc.modelName?.split('/').pop() || 'Unknown')}</span>
+                  </div>
                 </div>
                 <div class="doc-actions">
+                  ${!doc.isUrl ? `<button class="view" onclick="viewDoc('${escapeHtml(doc.fileName)}')" title="View file">👁️</button>` : ''}
+                  ${doc.isUrl ? `<button class="view" onclick="viewText('${escapeHtml(doc.fileName)}')" title="View text content">📝</button>` : ''}
+                  <button class="retrain" onclick="retrainDoc('${escapeHtml(doc.fileName)}')" title="Retrain with current model">🔄</button>
                   <button class="danger" onclick="deleteDoc('${escapeHtml(doc.fileName)}')">Delete</button>
                 </div>
               </div>
-            `).join('')}
+            `}).join('')}
           `;
         } else {
           empty.style.display = 'block';
@@ -381,7 +448,7 @@
     async function search() {
       const query = document.getElementById('searchInput').value.trim();
       const results = document.getElementById('results');
-      
+
       if (!query) return;
 
       results.innerHTML = '<div style="color: #999; padding: 20px 0;">Searching...</div>';
@@ -397,18 +464,38 @@
         if (data.results && data.results.length) {
           results.innerHTML = `
             <div style="font-size: 0.8rem; color: #999; margin-bottom: 15px;">
-              Found ${data.results.length} results for "${escapeHtml(data.query)}"
+              Found ${data.results.length} results for "${escapeHtml(data.query)}" above ${(data.minScore * 100).toFixed(0)}% similarity
             </div>
-            ${data.results.map(r => `
+            ${data.results.map(r => {
+              // Handle sourceUrl as array
+              let sourceUrlHtml = '';
+              if (r.sourceUrl) {
+                const urls = Array.isArray(r.sourceUrl) ? r.sourceUrl : [r.sourceUrl];
+                sourceUrlHtml = `<div class="meta" style="margin-top: 8px;">
+                  <strong>Source URLs:</strong> 
+                  ${urls.map((url, idx) => 
+                    `<a href="${url}" target="_blank" style="color: #2563eb; text-decoration: none; margin-right: 8px;">[${idx + 1}] ${new URL(url).hostname}</a>`
+                  ).join(' ')}
+                </div>`;
+              }
+              
+              return `
               <div class="result">
-                <div class="score">${(r.score * 100).toFixed(0)}% • ${escapeHtml(r.fileName)}</div>
+                <div class="score">
+                  ${(r.score * 100).toFixed(0)}% • ${escapeHtml(r.fileName)}
+                  ${r.fileUrl && (!r.sourceUrl || r.sourceUrl.length === 0) ? ` • <a href="${r.fileUrl}" target="_blank" style="color: #2563eb; text-decoration: none;">📄 View PDF</a>` : ''}
+                </div>
                 <div class="text">${escapeHtml(r.text)}</div>
-                ${r.sourceUrl ? `<div class="meta"><a href="${r.sourceUrl}" target="_blank">Source: ${r.sourceUrl}</a></div>` : ''}
+                ${sourceUrlHtml}
+                ${r.fileUrl && (!r.sourceUrl || r.sourceUrl.length === 0) ? `<div class="meta"><a href="${r.fileUrl}" target="_blank">📥 Download: ${escapeHtml(r.fileName)}</a></div>` : ''}
               </div>
-            `).join('')}
+            `}).join('')}
           `;
         } else {
-          results.innerHTML = '<div style="color: #999; padding: 20px 0;">No results found</div>';
+          const bestScore = typeof data.bestScore === 'number'
+            ? ` Best candidate was ${(data.bestScore * 100).toFixed(0)}%, below the ${(data.minScore * 100).toFixed(0)}% threshold.`
+            : '';
+          results.innerHTML = `<div style="color: #999; padding: 20px 0;">No relevant results found.${bestScore}</div>`;
         }
       } catch (e) {
         results.innerHTML = `<div style="color: #ef4444; padding: 20px 0;">Error: ${e.message}</div>`;
@@ -419,6 +506,180 @@
       const d = document.createElement('div');
       d.textContent = t;
       return d.innerHTML;
+    }
+
+    // Format date to readable string
+    function formatDate(dateStr) {
+      if (!dateStr) return 'N/A';
+      const date = new Date(dateStr);
+      return date.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+
+    // Retrain single document
+    async function retrainDoc(fileName) {
+      if (!confirm(`Retrain "${fileName}" with current embedding model?`)) return;
+
+      const btn = event.target;
+      const originalText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = '⏳';
+
+      try {
+        const res = await fetch(`${API}/retrain`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fileName })
+        });
+        const result = await res.json();
+
+        if (result.success) {
+          alert(`✅ Retrain "${fileName}" berhasil!\nChunks: ${result.chunks}\nModel: ${result.modelName.split('/').pop()}`);
+          loadDocuments();
+        } else {
+          alert(`❌ ${result.error}`);
+        }
+      } catch (e) {
+        alert(`❌ Error: ${e.message}`);
+      }
+
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
+
+    // View file
+    function viewDoc(fileName) {
+      const fileUrl = `${API}/file/${encodeURIComponent(fileName)}`;
+      window.open(fileUrl, '_blank');
+    }
+
+    // View text content (for text input / URL fetch)
+    async function viewText(fileName) {
+      try {
+        const res = await fetch(`${API}/text/${encodeURIComponent(fileName)}`);
+        const data = await res.json();
+        
+        if (data.success) {
+          // Create modal to display text
+          const modal = document.createElement('div');
+          modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+          `;
+          
+          modal.innerHTML = `
+            <div style="
+              background: white;
+              border-radius: 8px;
+              padding: 24px;
+              max-width: 800px;
+              width: 90%;
+              max-height: 80vh;
+              overflow-y: auto;
+              box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            ">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <h3 style="margin: 0; font-size: 1.1rem;">📝 ${escapeHtml(fileName)}</h3>
+                <button onclick="this.closest('div[style*=fixed]').remove()" style="
+                  background: none;
+                  border: none;
+                  font-size: 1.5rem;
+                  cursor: pointer;
+                  color: #999;
+                  padding: 4px 8px;
+                ">×</button>
+              </div>
+              <div style="font-size: 0.8rem; color: #999; margin-bottom: 12px;">
+                ${data.totalChunks} chunk(s) • ${data.fullText.length.toLocaleString()} characters
+              </div>
+              <div style="
+                background: #f9f9f9;
+                border: 1px solid #eee;
+                border-radius: 4px;
+                padding: 16px;
+                white-space: pre-wrap;
+                font-family: monospace;
+                font-size: 0.85rem;
+                line-height: 1.6;
+                max-height: 60vh;
+                overflow-y: auto;
+              ">${escapeHtml(data.fullText)}</div>
+              <div style="margin-top: 16px; text-align: right;">
+                <button onclick="
+                  navigator.clipboard.writeText(\`${data.fullText.replace(/`/g, '\\`').replace(/\$/g, '\\$')}\`);
+                  alert('Text copied to clipboard!');
+                " style="
+                  background: #2563eb;
+                  color: white;
+                  border: none;
+                  padding: 8px 16px;
+                  border-radius: 4px;
+                  cursor: pointer;
+                  font-size: 0.85rem;
+                ">📋 Copy Text</button>
+                <button onclick="this.closest('div[style*=fixed]').remove()" style="
+                  background: #f5f5f5;
+                  color: #333;
+                  border: none;
+                  padding: 8px 16px;
+                  border-radius: 4px;
+                  cursor: pointer;
+                  font-size: 0.85rem;
+                  margin-left: 8px;
+                ">Close</button>
+              </div>
+            </div>
+          `;
+          
+          document.body.appendChild(modal);
+        } else {
+          alert(`❌ ${data.error}`);
+        }
+      } catch (e) {
+        alert(`❌ Error: ${e.message}`);
+      }
+    }
+
+    // Retrain all documents
+    async function retrainAll() {
+      if (!confirm('Retrain ALL documents with current embedding model?\n\nThis will delete and re-index all documents.')) return;
+
+      const btn = document.getElementById('retrainAllBtn');
+      btn.disabled = true;
+      btn.textContent = '⏳ Processing...';
+
+      try {
+        const res = await fetch(`${API}/retrain-all`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        const result = await res.json();
+
+        if (result.success) {
+          alert(`✅ Retrain semua dokumen berhasil!\n\nTotal dokumen: ${result.totalDocuments}\nTotal chunks: ${result.totalChunks}${result.failed > 0 ? `\nFailed: ${result.failed}` : ''}\nModel: ${result.modelName.split('/').pop()}`);
+          loadDocuments();
+        } else {
+          alert(`❌ ${result.error}`);
+        }
+      } catch (e) {
+        alert(`❌ Error: ${e.message}`);
+      }
+
+      btn.disabled = false;
+      btn.textContent = '🔄 Retrain All';
     }
   </script>
 </body>

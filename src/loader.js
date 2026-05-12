@@ -57,6 +57,11 @@ export function chunkText(text, fileName, options = {}) {
   // Bersihkan whitespace berlebih tapi keep struktur
   const clean = text.trim();
 
+  const qaChunks = chunkQuestionAnswerCsv(clean, fileName);
+  if (qaChunks.length > 0) {
+    return qaChunks;
+  }
+
   if (!auto) {
     // Mode lama: fixed size chunking
     return chunkTextFixed(clean, fileName, CHUNK_SIZE, CHUNK_OVERLAP);
@@ -146,6 +151,85 @@ export function chunkText(text, fileName, options = {}) {
   }
 
   return chunks;
+}
+
+function chunkQuestionAnswerCsv(text, fileName) {
+  const rows = parseCsv(text);
+  if (rows.length < 2) return [];
+
+  const header = rows[0].map((cell) => cell.trim().toLowerCase());
+  const questionIndex = header.indexOf("question");
+  const answerIndex = header.indexOf("answer");
+  if (questionIndex < 0 || answerIndex < 0) return [];
+
+  const chunks = [];
+  let charStart = 0;
+
+  for (const row of rows.slice(1)) {
+    const question = row[questionIndex]?.trim();
+    const answer = row[answerIndex]?.trim();
+    if (!question || !answer) continue;
+
+    const chunk = `Pertanyaan: ${question}\nJawaban: ${answer}`;
+    const index = chunks.length;
+    chunks.push({
+      id: `${fileName}::chunk_${index}`,
+      text: chunk,
+      metadata: {
+        fileName,
+        chunkIndex: index,
+        charStart,
+        charEnd: charStart + chunk.length,
+      },
+    });
+    charStart += chunk.length + 1;
+  }
+
+  return chunks;
+}
+
+function parseCsv(text) {
+  const rows = [];
+  let row = [];
+  let cell = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    const next = text[i + 1];
+
+    if (char === '"') {
+      if (inQuotes && next === '"') {
+        cell += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+      continue;
+    }
+
+    if (char === "," && !inQuotes) {
+      row.push(cell);
+      cell = "";
+      continue;
+    }
+
+    if ((char === "\n" || char === "\r") && !inQuotes) {
+      if (char === "\r" && next === "\n") i++;
+      row.push(cell);
+      if (row.some((value) => value.trim())) rows.push(row);
+      row = [];
+      cell = "";
+      continue;
+    }
+
+    cell += char;
+  }
+
+  row.push(cell);
+  if (row.some((value) => value.trim())) rows.push(row);
+
+  return rows;
 }
 
 // ─────────────────────────────────────────

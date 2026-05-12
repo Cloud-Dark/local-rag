@@ -1,21 +1,17 @@
-// ============================================================
-//  KONFIGURASI — sesuaikan path model GGUF kamu di sini
-// ============================================================
+import "dotenv/config";
+
+function numberFromEnv(name, fallback) {
+  const value = Number(process.env[name]);
+  return Number.isFinite(value) ? value : fallback;
+}
 
 export const CONFIG = {
-  // --- Embedding Model ---
-  // Contoh: nomic-embed-text, all-minilm, mxbai-embed-large
-  EMBEDDING_MODEL_PATH: "./models/nomic-embed-text-v1.5.Q4_K_S.gguf",
-
-  // --- Embedding Settings ---
-  EMBEDDING_CONTEXT_SIZE: 2048,
-
-  // --- RAG Settings ---
-  CHUNK_SIZE: 500,             // Karakter per chunk
-  CHUNK_OVERLAP: 50,           // Overlap antar chunk (biar konteks nyambung)
-  TOP_K: 3,                    // Ambil N chunk paling relevan
-
-  // --- Paths ---
-  DOCUMENTS_DIR: "./documents", // Taruh PDF & TXT kamu di sini
-  DB_PATH: "./db/vectra",       // Vector store disimpan di sini
+  EMBEDDING_MODEL_PATH: process.env.EMBEDDING_MODEL_PATH || "./models/bge-m3-Q8_0.gguf",
+  EMBEDDING_CONTEXT_SIZE: numberFromEnv("EMBEDDING_CONTEXT_SIZE", 8192),
+  CHUNK_SIZE: numberFromEnv("CHUNK_SIZE", 800),
+  CHUNK_OVERLAP: numberFromEnv("CHUNK_OVERLAP", 100),
+  TOP_K: numberFromEnv("TOP_K", 5),
+  SEARCH_MIN_SCORE: numberFromEnv("SEARCH_MIN_SCORE", 0.7),
+  DOCUMENTS_DIR: process.env.DOCUMENTS_DIR || "./documents",
+  DB_PATH: process.env.DB_PATH || "./db/vectra",
 };
