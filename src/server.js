@@ -21,6 +21,7 @@ import { CONFIG } from "./config.js";
 import { loadAndChunkAll, chunkText } from "./loader.js";
 import { embedText, initEmbedder } from "./embedder.js";
 import { upsertChunk, searchSimilar, getStats, getIndex, clearIndex } from "./vectorStore.js";
+import { searchKeyword } from "./keywordSearch.js";
 import pdfParse from "pdf-parse";
 
 const app = express();
@@ -565,6 +566,61 @@ apiRouter.get("/get-list", async (req, res) => {
 //    ]
 //  }
 // ═══════════════════════════════════════════════════════════
+function normalizeScores(results, scoreField) {
+  const scores = results.map((result) => result[scoreField] || 0);
+  const max = Math.max(...scores, 0);
+  const min = Math.min(...scores, 0);
+
+  if (max === min) {
+    return new Map(results.map((result) => [result.id, max > 0 ? 1 : 0]));
+  }
+
+  return new Map(results.map((result) => [
+    result.id,
+    ((result[scoreField] || 0) - min) / (max - min),
+  ]));
+}
+
+function fuseSearchResults(vectorResults, keywordResults, alpha, topK) {
+  const vectorNorm = normalizeScores(vectorResults, "score");
+  const keywordNorm = normalizeScores(keywordResults, "keywordScore");
+  const byId = new Map();
+
+  for (const result of vectorResults) {
+    byId.set(result.id, {
+      ...result,
+      vectorScore: result.score,
+      keywordScore: 0,
+    });
+  }
+
+  for (const result of keywordResults) {
+    const existing = byId.get(result.id) || result;
+    byId.set(result.id, {
+      ...existing,
+      ...result,
+      vectorScore: existing.vectorScore || existing.score || 0,
+      keywordScore: result.keywordScore,
+    });
+  }
+
+  return [...byId.values()]
+    .map((result) => {
+      const hybridScore = alpha * (vectorNorm.get(result.id) || 0) + (1 - alpha) * (keywordNorm.get(result.id) || 0);
+      return {
+        ...result,
+        hybridScore,
+        score: hybridScore,
+      };
+    })
+    .sort((a, b) => b.hybridScore - a.hybridScore)
+    .slice(0, topK);
+}
+
+function formatScore(value) {
+  return parseFloat((value || 0).toFixed(4));
+}
+
 apiRouter.post("/search", async (req, res) => {
   const { query, topK, minScore } = req.body;
 
@@ -578,11 +634,38 @@ apiRouter.post("/search", async (req, res) => {
   try {
     const k = parseInt(topK) || CONFIG.TOP_K;
     const requestedMinScore = Number(minScore);
+    const searchType = ["vector", "keyword", "hybrid"].includes(req.body.searchType)
+      ? req.body.searchType
+      : "hybrid";
+    const requestedAlpha = Number(req.body.alpha);
+    const alpha = Number.isFinite(requestedAlpha) ? Math.max(0, Math.min(1, requestedAlpha)) : 0.7;
     const threshold = minScore !== undefined && minScore !== null && Number.isFinite(requestedMinScore)
       ? Math.max(0, Math.min(1, requestedMinScore))
       : CONFIG.SEARCH_MIN_SCORE;
-    const queryVector = await embedText(query.trim());
-    const rawResults = await searchSimilar(queryVector, k);
+    const candidateK = Math.max(k * 3, k);
+
+    let rawResults = [];
+
+    if (searchType === "vector") {
+      const queryVector = await embedText(query.trim());
+      rawResults = await searchSimilar(queryVector, k);
+    } else if (searchType === "keyword") {
+      const index = await getIndex();
+      const items = await index.listItems();
+      rawResults = searchKeyword(items, query.trim(), k).map((result) => ({
+        ...result,
+        score: result.keywordScore,
+      }));
+    } else {
+      const queryVector = await embedText(query.trim());
+      const [vectorResults, items] = await Promise.all([
+        searchSimilar(queryVector, candidateK),
+        getIndex().then((index) => index.listItems()),
+      ]);
+      const keywordResults = searchKeyword(items, query.trim(), candidateK);
+      rawResults = fuseSearchResults(vectorResults, keywordResults, alpha, k);
+    }
+
     const filteredResults = rawResults.filter((r) => r.score >= threshold);
     const bestScore = rawResults.length > 0 ? rawResults[0].score : null;
 
@@ -590,19 +673,21 @@ apiRouter.post("/search", async (req, res) => {
       query: query.trim(),
       topK: k,
       minScore: threshold,
-      bestScore: bestScore === null ? null : parseFloat(bestScore.toFixed(4)),
+      searchType,
+      alpha: searchType === "hybrid" ? alpha : undefined,
+      bestScore: bestScore === null ? null : formatScore(bestScore),
       matched: filteredResults.length > 0,
       filteredOut: rawResults.length - filteredResults.length,
       results: filteredResults.map((r, i) => {
         // Get all source URLs from document metadata (not from chunk)
         const docMeta = documentMetadata[r.fileName];
         let allSourceUrls = docMeta?.sourceUrl || r.sourceUrl || null;
-        
+
         // Ensure sourceUrl is always an array for consistency
         if (allSourceUrls && !Array.isArray(allSourceUrls)) {
           allSourceUrls = [allSourceUrls];
         }
-        
+
         // Use first URL for fileUrl (for backwards compatibility)
         const fileUrl = allSourceUrls && allSourceUrls.length > 0
           ? allSourceUrls[0]  // First URL for external documents
@@ -610,7 +695,10 @@ apiRouter.post("/search", async (req, res) => {
 
         return {
           rank: i + 1,
-          score: parseFloat(r.score.toFixed(4)),
+          score: formatScore(r.score),
+          vectorScore: r.vectorScore !== undefined ? formatScore(r.vectorScore) : undefined,
+          keywordScore: r.keywordScore !== undefined ? formatScore(r.keywordScore) : undefined,
+          hybridScore: r.hybridScore !== undefined ? formatScore(r.hybridScore) : undefined,
           fileName: r.fileName,
           fileUrl: fileUrl,
           sourceUrl: allSourceUrls || null,  // Return ALL source URLs as array

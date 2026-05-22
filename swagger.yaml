@@ -138,8 +138,8 @@ paths:
     post:
       tags:
         - Search
-      summary: Semantic search
-      description: Cari chunk dokumen paling relevan berdasarkan query
+      summary: Hybrid semantic and keyword search
+      description: Cari chunk dokumen paling relevan berdasarkan vector search, keyword/BM25, atau hybrid keduanya
       operationId: searchDocuments
       requestBody:
         required: true
@@ -298,6 +298,27 @@ components:
           description: Jumlah hasil yang dikembalikan (default: 3)
           example: 3
           default: 3
+        searchType:
+          type: string
+          enum: [hybrid, vector, keyword]
+          description: Mode pencarian. Hybrid menggabungkan vector search dan keyword/BM25.
+          example: hybrid
+          default: hybrid
+        alpha:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: Bobot vector search untuk mode hybrid. 0 berarti keyword penuh, 1 berarti vector penuh.
+          example: 0.7
+          default: 0.7
+        minScore:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: Threshold skor akhir sesuai searchType.
+          example: 0.7
 
     SearchResponse:
       type: object
@@ -308,6 +329,19 @@ components:
         topK:
           type: integer
           example: 3
+        searchType:
+          type: string
+          example: hybrid
+        alpha:
+          type: number
+          format: float
+          nullable: true
+          example: 0.7
+        bestScore:
+          type: number
+          format: float
+          nullable: true
+          example: 0.921
         results:
           type: array
           items:
@@ -319,6 +353,21 @@ components:
               score:
                 type: number
                 format: float
+                example: 0.921
+              vectorScore:
+                type: number
+                format: float
+                nullable: true
+                example: 0.846
+              keywordScore:
+                type: number
+                format: float
+                nullable: true
+                example: 1.234
+              hybridScore:
+                type: number
+                format: float
+                nullable: true
                 example: 0.921
               fileName:
                 type: string

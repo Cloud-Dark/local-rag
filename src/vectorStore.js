@@ -49,6 +49,7 @@ export async function searchSimilar(queryVector, topK = CONFIG.TOP_K) {
   const results = await index.queryItems(queryVector, topK);
 
   return results.map((r) => ({
+    id: r.item.id,
     text: r.item.metadata.text,
     fileName: r.item.metadata.fileName,
     chunkIndex: r.item.metadata.chunkIndex,
