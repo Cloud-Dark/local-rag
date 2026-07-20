@@ -13,6 +13,9 @@ Berjalan **100% lokal**, tanpa API key, tanpa biaya.
 | Komponen | Library | Keterangan |
 |---|---|---|
 | PDF Parser | `pdf-parse` | Baca file PDF |
+| DOCX Parser | `mammoth` | Baca file Word |
+| Excel/CSV Parser | `xlsx` | Baca file XLSX, XLS, CSV |
+| PPTX Parser | `jszip` | Baca file PowerPoint |
 | Embedding | `node-llama-cpp` | GGUF embedding model |
 | Vector Store | `vectra` | JSON lokal, no server |
 | API Server | `express` | REST API untuk training & search |
@@ -37,6 +40,19 @@ rag-local/
 ```
 
 ---
+
+## Dokumentasi Format
+
+| Format | Library | Ekstraksi |
+|---|---|---|
+| PDF | `pdf-parse` | Full text per halaman |
+| DOCX | `mammoth` | Full text dari paragraf |
+| XLSX / XLS | `xlsx` (SheetJS) | Semua sheet, tiap baris jadi teks |
+| CSV | `xlsx` | Sama seperti Excel |
+| PPTX | `jszip` | Teks dari tiap slide |
+| TXT / MD | built-in | Read file langsung |
+
+> 📸 **Image/OCR** → Belum tersedia, rencana pakai Tesseract.js nanti.
 
 ## Setup
 
@@ -100,7 +116,9 @@ Server akan berjalan di `http://localhost:3000`
 ```bash
 curl -X POST http://localhost:3000/training \
   -F "files=@dokumen1.pdf" \
-  -F "files=@dokumen2.txt"
+  -F "files=@laporan.docx" \
+  -F "files=@data.xlsx" \
+  -F "files=@slides.pptx"
 ```
 
 **Response:**

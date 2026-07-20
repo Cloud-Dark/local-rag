@@ -1,6 +1,9 @@
 import fs from "fs";
 import path from "path";
 import pdfParse from "pdf-parse";
+import mammoth from "mammoth";
+import XLSX from "xlsx";
+import JSZip from "jszip";
 import { CONFIG } from "./config.js";
 
 // ─────────────────────────────────────────
@@ -25,6 +28,23 @@ export async function loadDocuments(dir = CONFIG.DOCUMENTS_DIR) {
       } else if (ext === ".txt" || ext === ".md") {
         text = fs.readFileSync(filePath, "utf-8");
         console.log(`  📝 Text loaded: ${file}`);
+      } else if (ext === ".docx") {
+        const buffer = fs.readFileSync(filePath);
+        const result = await mammoth.extractRawText({ buffer });
+        text = result.value;
+        console.log(`  📋 DOCX loaded: ${file}`);
+      } else if (ext === ".xlsx" || ext === ".xls") {
+        const workbook = XLSX.readFile(filePath);
+        text = parseExcel(workbook);
+        console.log(`  📊 Excel loaded: ${file} (${workbook.SheetNames.length} sheets)`);
+      } else if (ext === ".pptx") {
+        text = await parsePptx(filePath);
+        console.log(`  📽️  PPTX loaded: ${file}`);
+      } else if (ext === ".csv") {
+        const raw = fs.readFileSync(filePath, "utf-8");
+        const workbook = XLSX.read(raw, { type: "string" });
+        text = parseExcel(workbook);
+        console.log(`  📊 CSV loaded: ${file}`);
       } else {
         console.log(`  ⏭️  Skip: ${file} (format tidak didukung)`);
         continue;
@@ -288,4 +308,52 @@ export async function loadAndChunkAll(dir = CONFIG.DOCUMENTS_DIR, options = {}) 
 
   console.log(`\n  📊 Total: ${allChunks.length} chunks`);
   return allChunks;
+}
+
+// ─────────────────────────────────────────
+//  Helper — parse Excel workbook jadi text
+// ─────────────────────────────────────────
+function parseExcel(workbook) {
+  const parts = [];
+  for (const sheetName of workbook.SheetNames) {
+    const sheet = workbook.Sheets[sheetName];
+    const json = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+    if (json.length === 0) continue;
+
+    parts.push(`=== Sheet: ${sheetName} ===`);
+    for (const row of json) {
+      const cells = row.filter((c) => c !== "").join(" | ");
+      if (cells) parts.push(cells);
+    }
+  }
+  return parts.join("\n");
+}
+
+// ─────────────────────────────────────────
+//  Helper — parse PPTX file jadi text
+// ─────────────────────────────────────────
+async function parsePptx(filePath) {
+  const buffer = fs.readFileSync(filePath);
+  const zip = await JSZip.loadAsync(buffer);
+  const parts = [];
+
+  // PPTX slides are stored as /ppt/slides/slideN.xml
+  const slideFiles = Object.keys(zip.files)
+    .filter((name) => /^ppt\/slides\/slide\d+\.xml$/i.test(name))
+    .sort();
+
+  for (const slideFile of slideFiles) {
+    const content = await zip.files[slideFile].async("string");
+    // Extract text from XML (remove tags)
+    const text = content
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (text) {
+      parts.push(`[Slide ${slideFiles.indexOf(slideFile) + 1}]`);
+      parts.push(text);
+    }
+  }
+
+  return parts.join("\n\n");
 }

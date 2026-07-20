@@ -97,12 +97,12 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (req, file, cb) => {
-  const allowed = [".pdf", ".txt", ".md"];
+  const allowed = [".pdf", ".txt", ".md", ".docx", ".xlsx", ".xls", ".pptx", ".csv"];
   const ext = path.extname(file.originalname).toLowerCase();
   if (allowed.includes(ext)) {
     cb(null, true);
   } else {
-    cb(new Error(`Format tidak didukung: ${ext}. Gunakan PDF, TXT, atau MD.`));
+    cb(new Error(`Format tidak didukung: ${ext}. Gunakan PDF, TXT, MD, DOCX, XLSX, XLS, PPTX, atau CSV.`));
   }
 };
 
