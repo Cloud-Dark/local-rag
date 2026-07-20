@@ -7,7 +7,10 @@
       "PowerShell(node src/server.js)",
       "PowerShell(npm.cmd install dotenv)",
       "PowerShell(node -e \"import\\('./src/config.js'\\).then\\(\\({CONFIG}\\) => console.log\\(JSON.stringify\\(CONFIG, null, 2\\)\\)\\)\")",
-      "PowerShell(node -e \"import\\('./src/config.js'\\).then\\(\\({CONFIG}\\) => console.log\\(JSON.stringify\\({ TOP_K: CONFIG.TOP_K, SEARCH_MIN_SCORE: CONFIG.SEARCH_MIN_SCORE }, null, 2\\)\\)\\)\")"
+      "PowerShell(node -e \"import\\('./src/config.js'\\).then\\(\\({CONFIG}\\) => console.log\\(JSON.stringify\\({ TOP_K: CONFIG.TOP_K, SEARCH_MIN_SCORE: CONFIG.SEARCH_MIN_SCORE }, null, 2\\)\\)\\)\")",
+      "PowerShell(node test-search.js \"laptop hang\")",
+      "PowerShell(npm start *)",
+      "PowerShell(git push *)"
     ]
   }
 }

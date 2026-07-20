@@ -16,7 +16,6 @@ import path from "path";
 import swaggerUi from "swagger-ui-express";
 import yaml from "yamljs";
 import { createServer } from "net";
-import fetch from "node-fetch";
 import { CONFIG } from "./config.js";
 import { loadAndChunkAll, chunkText } from "./loader.js";
 import { embedText, initEmbedder } from "./embedder.js";
@@ -176,11 +175,9 @@ async function fetchUrlContent(url) {
 //  Helper — proses 1 file jadi chunks + embed + simpan
 // ─────────────────────────────────────────
 async function processFile(filePath, fileName, customName = null, sourceUrl = null, isRetrain = false) {
-  console.log("DEBUG processFile:", { fileName, customName, sourceUrl });
   const ext = path.extname(fileName).toLowerCase();
   let text = "";
   const displayName = customName || fileName;
-  console.log("DEBUG displayName:", displayName);
 
   if (ext === ".pdf") {
     const buffer = fs.readFileSync(filePath);
@@ -339,8 +336,6 @@ apiRouter.post("/training", upload.array("files"), async (req, res) => {
       customNames = customNamesSource.split(',').map(s => s.trim()).filter(s => s);
     }
   }
-  console.log("DEBUG customNames:", customNames);
-
   // Parse sourceUrls (for files)
   let sourceUrls = [];
   const sourceUrlsSource = body.sourceUrls;
@@ -352,8 +347,6 @@ apiRouter.post("/training", upload.array("files"), async (req, res) => {
       sourceUrls = sourceUrlsSource.split(',').map(s => s.trim()).filter(s => s);
     }
   }
-  console.log("DEBUG sourceUrls:", sourceUrls);
-
   // Parse urls (for URL fetching)
   let urls = [];
   const urlsSource = body.urls || body.url;
@@ -365,8 +358,6 @@ apiRouter.post("/training", upload.array("files"), async (req, res) => {
       urls = urlsSource.split(',').map(s => s.trim()).filter(s => s);
     }
   }
-  console.log("DEBUG urls:", urls);
-
   trainingStatus.isRunning = true;
   const processed = [];
   const failed = [];
@@ -458,12 +449,6 @@ apiRouter.get("/get-list", async (req, res) => {
   try {
     const index = await getIndex();
     const allItems = await index.listItems();
-
-    console.log("DEBUG get-list: allItems =", allItems.map(i => ({
-      id: i.id,
-      fileName: i.metadata?.fileName,
-      sourceUrl: i.metadata?.sourceUrl,
-    })));
 
     // Group by fileName
     const docMap = {};
