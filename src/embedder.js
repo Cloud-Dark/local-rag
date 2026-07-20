@@ -11,7 +11,7 @@ let _embeddingContext = null;
 export async function initEmbedder() {
   if (_embeddingContext) return _embeddingContext;
 
-  if (!fs.existsSync(CONFIG.EMBEDDING_MODEL_PATH)) {
+  if (!await fs.promises.access(CONFIG.EMBEDDING_MODEL_PATH).then(() => true).catch(() => false)) {
     throw new Error(`Embedding model tidak ditemukan: ${CONFIG.EMBEDDING_MODEL_PATH}`);
   }
 
@@ -42,6 +42,7 @@ export async function embedText(text) {
 // ─────────────────────────────────────────
 //  Embed banyak teks sekaligus (dengan progress)
 // ─────────────────────────────────────────
+/*
 export async function embedBatch(texts, onProgress) {
   const vectors = [];
 
@@ -54,10 +55,14 @@ export async function embedBatch(texts, onProgress) {
 
   return vectors;
 }
+*/
 
 export async function disposeEmbedder() {
   if (_embeddingContext) {
     await _embeddingContext.dispose();
     _embeddingContext = null;
   }
+  // Model stored as local variable in initEmbedder — we track it via module scope
+  // node-llama-cpp model.dispose() and getLlama() reset handled below:
+  _llama = null;
 }

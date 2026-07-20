@@ -3,134 +3,243 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>RAG</title>
+  <title>RAG Lokal</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: system-ui, -apple-system, sans-serif; max-width: 700px; margin: 0 auto; padding: 20px; background: #fafafa; }
-    
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 760px; margin: 0 auto; padding: 24px;
+      background: #f8f7f4; color: #1a1a1a;
+    }
+
     /* Tabs */
-    .tabs { display: flex; border-bottom: 1px solid #ddd; margin-bottom: 20px; }
-    .tab { padding: 10px 20px; cursor: pointer; border: none; background: none; font-size: 0.9rem; color: #666; border-bottom: 2px solid transparent; margin-bottom: -1px; }
-    .tab:hover { color: #333; }
-    .tab.active { color: #333; border-bottom-color: #333; font-weight: 500; }
-    
-    /* Tab Content */
+    .tabs { display: flex; border-bottom: 1.5px solid #1a1a1a; margin-bottom: 24px; gap: 0; }
+    .tab {
+      padding: 10px 20px; cursor: pointer; border: 1.5px solid transparent;
+      background: none; font-size: 0.85rem; color: #666;
+      border-bottom: none; margin-bottom: -1.5px;
+      font-weight: 500; letter-spacing: 0.02em;
+    }
+    .tab:hover { color: #1a1a1a; background: #f0efe8; }
+    .tab.active {
+      color: #1a1a1a; border-color: #1a1a1a; background: white;
+      font-weight: 600; border-bottom-color: white;
+    }
+
     .tab-content { display: none; }
     .tab-content.active { display: block; }
-    
-    /* Cards */
-    .card { background: white; border: 1px solid #eee; border-radius: 6px; padding: 20px; margin-bottom: 15px; }
-    .card h3 { font-size: 0.85rem; color: #999; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 15px; font-weight: 500; }
-    
-    /* Forms */
-    label { display: block; font-size: 0.8rem; color: #666; margin-bottom: 6px; }
-    textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem; font-family: inherit; resize: vertical; min-height: 120px; }
-    input[type="text"], input[type="url"] { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem; }
-    
-    /* Buttons */
-    button { background: #333; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; font-weight: 500; }
-    button:hover { background: #555; }
-    button:disabled { opacity: 0.5; cursor: not-allowed; }
-    button.secondary { background: #f5f5f5; color: #333; }
-    button.secondary:hover { background: #eee; }
-    button.danger { background: #fee2e2; color: #dc2626; }
-    button.danger:hover { background: #fecaca; }
-    
-    /* File Input */
-    input[type="file"] { margin-top: 8px; }
-    
-    /* Items List */
-    .items { margin-top: 12px; }
-    .item { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: #f9f9f9; border-radius: 4px; margin-bottom: 8px; font-size: 0.85rem; }
-    .item button { padding: 4px 10px; font-size: 0.75rem; background: transparent; color: #999; }
-    .item button:hover { background: #eee; color: #333; }
-    
-    /* Status */
-    .status { margin-top: 12px; font-size: 0.8rem; padding: 10px; border-radius: 4px; }
-    .status.success { background: #d1fae5; color: #065f46; }
-    .status.error { background: #fee2e2; color: #991b1b; }
-    .status.loading { background: #e0e7ff; color: #3730a3; }
-    
-    /* Search Results */
-    .result { padding: 15px 0; border-bottom: 1px solid #eee; }
+
+    .card {
+      background: white; border: 1.5px solid #1a1a1a;
+      padding: 20px; margin-bottom: 16px;
+    }
+    .card h3 {
+      font-size: 0.75rem; color: #888; text-transform: uppercase;
+      letter-spacing: 0.08em; margin-bottom: 14px; font-weight: 600;
+    }
+    .card-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 14px;
+    }
+    .card-header h3 { margin: 0; }
+
+    label { display: block; font-size: 0.78rem; color: #555; margin-bottom: 5px; font-weight: 500; }
+    textarea {
+      width: 100%; padding: 10px; border: 1.5px solid #ddd;
+      font-size: 0.9rem; font-family: inherit; resize: vertical;
+      min-height: 100px; background: #fcfcfa;
+    }
+    textarea:focus { outline: none; border-color: #1a1a1a; }
+    input[type="text"], input[type="url"] {
+      width: 100%; padding: 10px; border: 1.5px solid #ddd;
+      font-size: 0.9rem; background: #fcfcfa;
+    }
+    input:focus { outline: none; border-color: #1a1a1a; }
+    select {
+      padding: 8px 10px; border: 1.5px solid #ddd;
+      font-size: 0.85rem; background: #fcfcfa;
+    }
+
+    .row { display: flex; gap: 8px; margin-top: 12px; }
+    .row > *:first-child { flex: 1; }
+
+    button {
+      background: #1a1a1a; color: white; border: 1.5px solid #1a1a1a;
+      padding: 10px 20px; cursor: pointer; font-size: 0.82rem;
+      font-weight: 500; letter-spacing: 0.02em;
+    }
+    button:hover { background: #333; }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+    button.secondary { background: white; color: #1a1a1a; }
+    button.secondary:hover { background: #f0efe8; }
+    button.danger { background: white; color: #c00; border-color: #c00; }
+    button.danger:hover { background: #fff0f0; }
+    button.small { padding: 5px 10px; font-size: 0.75rem; }
+    button.link {
+      background: none; border: none; color: #1a1a1a;
+      text-decoration: underline; padding: 2px 4px;
+    }
+    button.link:hover { background: none; color: #555; }
+
+    input[type="file"] { margin-top: 6px; font-size: 0.85rem; }
+
+    /* Items list (urls, files) */
+    .items { margin-top: 10px; }
+    .item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 8px 10px; background: #f6f5f0; border: 1px solid #eae8e0;
+      margin-bottom: 5px; font-size: 0.82rem; gap: 8px;
+    }
+    .item .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .item .actions { display: flex; gap: 4px; flex-shrink: 0; }
+    .item button { padding: 3px 8px; font-size: 0.7rem; min-width: 24px; }
+
+    /* Status / Alert */
+    .alert {
+      margin-top: 10px; padding: 10px 12px; font-size: 0.8rem;
+      border: 1.5px solid;
+    }
+    .alert.success { background: #edfaf0; border-color: #1a7a3a; color: #1a5a2a; }
+    .alert.error { background: #fef2f2; border-color: #c00; color: #8a1a1a; }
+    .alert.loading { background: #f0f4ff; border-color: #3366cc; color: #1a3366; }
+
+    /* Search results */
+    .result { padding: 14px 0; border-bottom: 1px solid #eae8e0; }
     .result:last-child { border-bottom: none; }
-    .score { font-size: 0.75rem; color: #999; margin-bottom: 6px; }
-    .text { font-size: 0.9rem; color: #333; margin-bottom: 8px; line-height: 1.6; }
-    .meta { font-size: 0.75rem; color: #999; }
-    .meta a { color: #333; }
-    
-    /* Document List */
-    .doc-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #f9f9f9; border-radius: 4px; margin-bottom: 8px; }
-    .doc-info { flex: 1; }
-    .doc-name { font-size: 0.9rem; color: #333; }
-    .doc-meta { font-size: 0.75rem; color: #999; margin-top: 4px; }
-    .doc-meta span { margin-right: 12px; }
-    .doc-actions button { margin-left: 6px; padding: 4px 8px; font-size: 0.75rem; }
-    .doc-actions button.retrain { color: #2563eb; }
-    .doc-actions button.retrain:hover { background: #dbeafe; color: #1d4ed8; }
-    .doc-actions button.view { color: #16a34a; }
-    .doc-actions button.view:hover { background: #dcfce7; color: #15803d; }
-    
-    /* Empty State */
+    .result .score { font-size: 0.75rem; color: #888; margin-bottom: 5px; font-weight: 500; }
+    .result .text { font-size: 0.88rem; color: #1a1a1a; margin-bottom: 6px; line-height: 1.6; }
+    .result .meta { font-size: 0.73rem; color: #888; }
+    .result .meta a { color: #1a1a1a; text-decoration: underline; }
+
+    /* Document list */
+    .doc-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 12px; background: #f6f5f0; border: 1px solid #eae8e0;
+      margin-bottom: 6px;
+    }
+    .doc-info { flex: 1; min-width: 0; }
+    .doc-name { font-size: 0.88rem; color: #1a1a1a; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .doc-meta { font-size: 0.72rem; color: #888; margin-top: 4px; display: flex; flex-wrap: wrap; gap: 8px; }
+    .doc-actions { display: flex; gap: 4px; flex-shrink: 0; margin-left: 8px; }
+
+    /* Empty state */
     .empty { text-align: center; padding: 40px 20px; color: #999; }
-    .empty-icon { font-size: 2rem; margin-bottom: 10px; }
+    .empty-icon { font-size: 1.8rem; margin-bottom: 8px; }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.4); display: flex; justify-content: center;
+      align-items: center; z-index: 1000;
+    }
+    .modal {
+      background: white; border: 1.5px solid #1a1a1a;
+      padding: 24px; max-width: 760px; width: 92%;
+      max-height: 80vh; overflow-y: auto;
+    }
+    .modal-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 16px;
+    }
+    .modal-header h3 { margin: 0; font-size: 1rem; }
+    .modal-close {
+      background: none; border: none; font-size: 1.3rem;
+      cursor: pointer; color: #999; padding: 2px 8px; line-height: 1;
+    }
+    .modal-close:hover { color: #1a1a1a; }
+    .modal-body {
+      background: #f8f7f4; border: 1px solid #eae8e0;
+      padding: 16px; white-space: pre-wrap; font-family: monospace;
+      font-size: 0.82rem; line-height: 1.5; max-height: 55vh; overflow-y: auto;
+    }
+    .modal-footer { margin-top: 14px; display: flex; gap: 8px; justify-content: flex-end; }
+
+    /* Search config */
+    .search-config {
+      display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+      margin-top: 12px; padding: 12px; background: #f6f5f0;
+      border: 1px solid #eae8e0;
+    }
+    .search-config label { margin-bottom: 2px; }
+    .search-config input[type="range"] { width: 100px; vertical-align: middle; }
+    .search-config .value { font-size: 0.8rem; font-weight: 600; min-width: 28px; display: inline-block; }
+
+    /* Badge tags */
+    .badge { display: inline-block; font-size: 0.65rem; padding: 2px 6px; background: #eae8e0; font-weight: 500; letter-spacing: 0.03em; }
+
+    @media (max-width: 600px) {
+      body { padding: 12px; }
+      .tabs { gap: 0; }
+      .tab { padding: 8px 12px; font-size: 0.78rem; }
+      .search-config { flex-direction: column; align-items: stretch; }
+      .doc-actions { flex-wrap: wrap; }
+    }
   </style>
 </head>
 <body>
-  <!-- Tabs -->
   <div class="tabs">
-    <button class="tab active" onclick="switchTab('training')">Training</button>
-    <button class="tab" onclick="switchTab('list')">List</button>
+    <button class="tab active" onclick="switchTab('training')">Train</button>
+    <button class="tab" onclick="switchTab('list')">Documents</button>
     <button class="tab" onclick="switchTab('search')">Search</button>
+    <button class="tab" onclick="switchTab('agent')">API</button>
   </div>
 
-  <!-- Training Tab -->
+  <!-- ════════ TRAINING TAB ════════ -->
   <div id="training" class="tab-content active">
-    
-    <!-- Text Input -->
+
+    <!-- Direct Text -->
     <div class="card">
-      <h3>1. Text Input</h3>
+      <h3>1. Text</h3>
       <textarea id="textInput" placeholder="Paste your text here..."></textarea>
-      <div style="display: flex; gap: 8px; margin-top: 12px;">
-        <input type="url" id="textSourceUrl" placeholder="Source URL (optional)" onkeypress="if(event.key==='Enter')addTextSourceUrl()" style="flex: 1;">
-        <button class="secondary" onclick="addTextSourceUrl()">Add URL</button>
+      <div class="row">
+        <input type="url" id="textSourceUrl" placeholder="Source URL (optional)">
+        <button class="secondary" onclick="addTextSourceUrl()">Add</button>
       </div>
-      <div class="items" id="textSourceUrlList" style="margin-top: 8px;"></div>
-      <button onclick="trainText()" style="margin-top: 12px;" id="trainTextBtn">Train Text</button>
+      <div class="items" id="textSourceUrlList"></div>
+      <div class="row">
+        <button onclick="trainText()" id="trainTextBtn">Train Text</button>
+      </div>
       <div id="textStatus"></div>
     </div>
 
     <!-- File Upload -->
     <div class="card">
-      <h3>2. File Upload</h3>
-      <input type="file" id="fileInput" multiple accept=".pdf,.txt,.md">
+      <h3>2. Files</h3>
+      <input type="file" id="fileInput" multiple accept=".pdf,.txt,.md,.docx,.xlsx,.xls,.pptx,.csv">
       <div class="items" id="fileList"></div>
-      <button onclick="trainFiles()" style="margin-top: 12px;" id="trainFileBtn">Train Files</button>
+      <div class="row" style="margin-top: 8px;">
+        <input type="url" id="fileSourceUrl" placeholder="Source URL (applied to all files, optional)">
+      </div>
+      <div class="row">
+        <button onclick="trainFiles()" id="trainFileBtn">Train Files</button>
+      </div>
       <div id="fileStatus"></div>
     </div>
 
-    <!-- URL Input -->
+    <!-- URL Fetch -->
     <div class="card">
-      <h3>3. URL Fetch</h3>
-      <div style="display: flex; gap: 8px;">
-        <input type="url" id="urlInput" placeholder="https://example.com/article" onkeypress="if(event.key==='Enter')addUrl()">
+      <h3>3. URLs</h3>
+      <div class="row">
+        <input type="url" id="urlInput" placeholder="https://example.com/article">
         <button class="secondary" onclick="addUrl()">Add</button>
       </div>
       <div class="items" id="urlList"></div>
-      <button onclick="trainUrls()" style="margin-top: 12px;" id="trainUrlBtn">Train URLs</button>
+      <div class="row">
+        <button onclick="trainUrls()" id="trainUrlBtn">Train URLs</button>
+      </div>
       <div id="urlStatus"></div>
     </div>
 
   </div>
 
-  <!-- List Tab -->
+  <!-- ════════ DOCUMENTS TAB ════════ -->
   <div id="list" class="tab-content">
     <div class="card">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-        <h3 style="margin: 0;">Documents</h3>
-        <div style="display: flex; gap: 8px;">
-          <button class="secondary" onclick="retrainAll()" id="retrainAllBtn" title="Retrain all documents with current model">🔄 Retrain All</button>
-          <button class="secondary" onclick="loadDocuments()">Refresh</button>
+      <div class="card-header">
+        <h3>Documents</h3>
+        <div style="display: flex; gap: 6px;">
+          <button class="secondary small" onclick="retrainAll()" id="retrainAllBtn" title="Retrain all documents">↻ Retrain All</button>
+          <button class="secondary small" onclick="loadDocuments()">↻ Refresh</button>
         </div>
       </div>
       <div id="docList"></div>
@@ -141,15 +250,63 @@
     </div>
   </div>
 
-  <!-- Search Tab -->
+  <!-- ════════ AGENT TAB ════════ -->
+  <div id="agent" class="tab-content">
+    <div class="card">
+      <div class="card-header"><h3>API Documentation for AI Agents</h3></div>
+      <p style="font-size:0.85rem;color:#555;margin-bottom:14px;line-height:1.6;">
+        Copy the markdown below and paste it into any AI assistant (Claude, ChatGPT, etc.)
+        so it understands how to interact with this RAG API.
+      </p>
+      <button onclick="copyApiDoc()" style="margin-bottom:12px;">📋 Copy API Docs</button>
+      <pre id="agentDoc" style="
+        background:#f6f5f0; border:1px solid #eae8e0;
+        padding:16px; font-family:monospace; font-size:0.78rem;
+        line-height:1.5; white-space:pre-wrap; max-height:65vh; overflow-y:auto;
+      "></pre>
+    </div>
+  </div>
+
+  <!-- ════════ SEARCH TAB ════════ -->
   <div id="search" class="tab-content">
     <div class="card">
       <h3>Search</h3>
-      <div style="display: flex; gap: 8px;">
-        <input type="text" id="searchInput" placeholder="Ask a question..." onkeypress="if(event.key==='Enter')search()">
+      <div class="row">
+        <input type="text" id="searchInput" placeholder="Ask a question...">
         <button onclick="search()">Search</button>
       </div>
-      <div id="results" style="margin-top: 20px;"></div>
+
+      <div class="search-config">
+        <div>
+          <label>Mode</label>
+          <select id="searchType" onchange="onSearchTypeChange()">
+            <option value="hybrid">Hybrid</option>
+            <option value="vector">Vector</option>
+            <option value="keyword">Keyword</option>
+          </select>
+        </div>
+        <div id="alphaGroup">
+          <label>Alpha <span id="alphaValue">0.70</span></label>
+          <input type="range" id="alphaSlider" min="0" max="1" step="0.05" value="0.7"
+                 oninput="document.getElementById('alphaValue').textContent=parseFloat(this.value).toFixed(2)">
+        </div>
+        <div>
+          <label>Results</label>
+          <select id="topKSelect">
+            <option value="3">3</option>
+            <option value="5" selected>5</option>
+            <option value="10">10</option>
+            <option value="20">20</option>
+          </select>
+        </div>
+        <div>
+          <label>Min Score <span id="minScoreValue">0.00</span></label>
+          <input type="range" id="minScoreSlider" min="0" max="1" step="0.05" value="0"
+                 oninput="document.getElementById('minScoreValue').textContent=parseFloat(this.value).toFixed(2)">
+        </div>
+      </div>
+
+      <div id="results" style="margin-top: 16px;"></div>
     </div>
   </div>
 
@@ -159,215 +316,146 @@
     let urls = [];
     let textSourceUrls = [];
 
-    // Tab Switching
+    // ─── Tab Switching ───
     function switchTab(tabId) {
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
       document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-      document.querySelector(`.tab[onclick="switchTab('${tabId}')"]`).classList.add('active');
+      const tab = document.querySelector(`.tab[onclick*="'${tabId}'"]`);
+      if (tab) tab.classList.add('active');
       document.getElementById(tabId).classList.add('active');
-
       if (tabId === 'list') loadDocuments();
     }
 
-    // Text Source URL handling
+    // ─── Search type change ───
+    function onSearchTypeChange() {
+      const show = document.getElementById('searchType').value === 'hybrid';
+      document.getElementById('alphaGroup').style.display = show ? '' : 'none';
+    }
+    onSearchTypeChange();
+
+    // ─── Text Source URLs ───
     function addTextSourceUrl() {
       const input = document.getElementById('textSourceUrl');
       const url = input.value.trim();
-      if (url && isValidUrl(url)) {
-        textSourceUrls.push(url);
-        renderTextSourceUrls();
-        input.value = '';
-      }
+      if (url && isValidUrl(url)) { textSourceUrls.push(url); renderTextSourceUrls(); input.value = ''; }
     }
-
     function renderTextSourceUrls() {
-      const list = document.getElementById('textSourceUrlList');
-      list.innerHTML = textSourceUrls.map((u, i) => `
-        <div class="item">
-          <span>${u}</span>
-          <button onclick="removeTextSourceUrl(${i})">✕</button>
-        </div>
-      `).join('');
+      document.getElementById('textSourceUrlList').innerHTML =
+        textSourceUrls.map((u, i) => `<div class="item"><span class="name">${esc(u)}</span><div class="actions"><button onclick="textSourceUrls.splice(${i},1);renderTextSourceUrls()">✕</button></div></div>`).join('');
     }
+    function removeTextSourceUrl(i) { textSourceUrls.splice(i,1); renderTextSourceUrls(); }
 
-    function removeTextSourceUrl(i) {
-      textSourceUrls.splice(i, 1);
-      renderTextSourceUrls();
-    }
-
-    // File handling
-    document.getElementById('fileInput').addEventListener('change', (e) => {
+    // ─── File handling ───
+    document.getElementById('fileInput').addEventListener('change', e => {
       files = [...e.target.files];
       renderFiles();
     });
-
     function renderFiles() {
       const list = document.getElementById('fileList');
-      list.innerHTML = files.map((f, i) => `
-        <div class="item">
-          <span>${f.name}</span>
-          <button onclick="removeFile(${i})">✕</button>
-        </div>
-      `).join('');
+      const formats = {
+        pdf: '📄', docx: '📋', xlsx: '📊', xls: '📊', pptx: '📽️',
+        csv: '📊', txt: '📝', md: '📝'
+      };
+      list.innerHTML = files.map((f, i) => {
+        const ext = f.name.split('.').pop().toLowerCase();
+        const icon = formats[ext] || '📄';
+        return `<div class="item"><span class="name">${icon} ${esc(f.name)}</span><div class="actions"><button onclick="files.splice(${i},1);renderFiles();document.getElementById('fileInput').value=''">✕</button></div></div>`;
+      }).join('');
     }
+    function removeFile(i) { files.splice(i,1); renderFiles(); document.getElementById('fileInput').value = ''; }
 
-    function removeFile(i) {
-      files.splice(i, 1);
-      renderFiles();
-      document.getElementById('fileInput').value = '';
-    }
-
-    // URL handling
+    // ─── URL handling ───
     function addUrl() {
       const input = document.getElementById('urlInput');
       const url = input.value.trim();
-      if (url && isValidUrl(url)) {
-        urls.push(url);
-        renderUrls();
-        input.value = '';
-      }
+      if (url && isValidUrl(url)) { urls.push(url); renderUrls(); input.value = ''; }
     }
-
     function renderUrls() {
-      const list = document.getElementById('urlList');
-      list.innerHTML = urls.map((u, i) => `
-        <div class="item">
-          <span>${u}</span>
-          <button onclick="removeUrl(${i})">✕</button>
-        </div>
-      `).join('');
+      document.getElementById('urlList').innerHTML =
+        urls.map((u, i) => `<div class="item"><span class="name">🌐 ${esc(u)}</span><div class="actions"><button onclick="urls.splice(${i},1);renderUrls()">✕</button></div></div>`).join('');
     }
+    function removeUrl(i) { urls.splice(i,1); renderUrls(); }
 
-    function removeUrl(i) {
-      urls.splice(i, 1);
-      renderUrls();
-    }
+    function isValidUrl(s) { try { new URL(s); return true; } catch { return false; } }
 
-    function isValidUrl(s) {
-      try { new URL(s); return true; } catch { return false; }
-    }
-
-    // Training Functions
+    // ─── Train Text ───
     async function trainText() {
       const text = document.getElementById('textInput').value.trim();
-      const btn = document.getElementById('trainTextBtn');
-      const status = document.getElementById('textStatus');
+      if (!text) { return showStatus('textStatus', 'Enter some text', 'error'); }
 
-      if (!text) {
-        showStatus(status, 'Enter some text', 'error');
-        return;
-      }
+      const btn = document.getElementById('trainTextBtn'); btn.disabled = true;
+      showStatus('textStatus', 'Training...', 'loading');
 
-      btn.disabled = true;
-      showStatus(status, 'Training...', 'loading');
-
-      const formData = new FormData();
-      formData.append('text', text);
-      
-      // Combine textSourceUrls array with any URL in the input field
-      const allSourceUrls = [...textSourceUrls];
+      const fd = new FormData();
+      fd.append('text', text);
+      const allUrls = [...textSourceUrls];
       const inputUrl = document.getElementById('textSourceUrl').value.trim();
-      if (inputUrl && isValidUrl(inputUrl)) {
-        allSourceUrls.push(inputUrl);
-      }
-      
-      if (allSourceUrls.length > 0) {
-        formData.append('sourceUrls', JSON.stringify(allSourceUrls));
-      }
+      if (inputUrl && isValidUrl(inputUrl)) allUrls.push(inputUrl);
+      if (allUrls.length) fd.append('sourceUrls', JSON.stringify(allUrls));
 
       try {
-        const res = await fetch(`${API}/training`, { method: 'POST', body: formData });
-        const result = await res.json();
-
-        if (result.success) {
-          showStatus(status, `Done! ${result.processed.length} items, ${result.totalChunksInDB} chunks in DB`, 'success');
+        const res = await fetch(`${API}/training`, { method: 'POST', body: fd });
+        const r = await res.json();
+        if (r.success) {
+          showStatus('textStatus', `Done! ${r.processed.length} items, ${r.totalChunksInDB} chunks in DB`, 'success');
           document.getElementById('textInput').value = '';
           document.getElementById('textSourceUrl').value = '';
-          textSourceUrls = [];
-          renderTextSourceUrls();
-        } else {
-          showStatus(status, result.error || 'Failed', 'error');
-        }
-      } catch (e) {
-        showStatus(status, e.message, 'error');
-      }
-
+          textSourceUrls = []; renderTextSourceUrls();
+        } else showStatus('textStatus', r.error || 'Failed', 'error');
+      } catch (e) { showStatus('textStatus', e.message, 'error'); }
       btn.disabled = false;
     }
 
+    // ─── Train Files ───
     async function trainFiles() {
-      const btn = document.getElementById('trainFileBtn');
-      const status = document.getElementById('fileStatus');
+      if (!files.length) return showStatus('fileStatus', 'Select files first', 'error');
+      const btn = document.getElementById('trainFileBtn'); btn.disabled = true;
+      showStatus('fileStatus', 'Training...', 'loading');
 
-      if (!files.length) {
-        showStatus(status, 'Select files first', 'error');
-        return;
-      }
-
-      btn.disabled = true;
-      showStatus(status, 'Training...', 'loading');
-
-      const formData = new FormData();
-      files.forEach(f => formData.append('files', f));
+      const fd = new FormData();
+      files.forEach(f => fd.append('files', f));
+      const fileSourceUrl = document.getElementById('fileSourceUrl').value.trim();
+      if (fileSourceUrl && isValidUrl(fileSourceUrl)) fd.append('sourceUrls', JSON.stringify([fileSourceUrl]));
 
       try {
-        const res = await fetch(`${API}/training`, { method: 'POST', body: formData });
-        const result = await res.json();
-        
-        if (result.success) {
-          showStatus(status, `Done! ${result.processed.length} items, ${result.totalChunksInDB} chunks in DB`, 'success');
-          files = [];
-          renderFiles();
+        const res = await fetch(`${API}/training`, { method: 'POST', body: fd });
+        const r = await res.json();
+        if (r.success) {
+          showStatus('fileStatus', `Done! ${r.processed.length} items, ${r.totalChunksInDB} chunks`, 'success');
+          files = []; renderFiles();
           document.getElementById('fileInput').value = '';
-        } else {
-          showStatus(status, result.error || 'Failed', 'error');
-        }
-      } catch (e) {
-        showStatus(status, e.message, 'error');
-      }
-
+        } else showStatus('fileStatus', r.error || 'Failed', 'error');
+      } catch (e) { showStatus('fileStatus', e.message, 'error'); }
       btn.disabled = false;
     }
 
+    // ─── Train URLs ───
     async function trainUrls() {
-      const btn = document.getElementById('trainUrlBtn');
-      const status = document.getElementById('urlStatus');
+      if (!urls.length) return showStatus('urlStatus', 'Add URLs first', 'error');
+      const btn = document.getElementById('trainUrlBtn'); btn.disabled = true;
+      showStatus('urlStatus', 'Training...', 'loading');
 
-      if (!urls.length) {
-        showStatus(status, 'Add URLs first', 'error');
-        return;
-      }
-
-      btn.disabled = true;
-      showStatus(status, 'Training...', 'loading');
-
-      const formData = new FormData();
-      formData.append('urls', JSON.stringify(urls));
+      const fd = new FormData();
+      fd.append('urls', JSON.stringify(urls));
 
       try {
-        const res = await fetch(`${API}/training`, { method: 'POST', body: formData });
-        const result = await res.json();
-        
-        if (result.success) {
-          showStatus(status, `Done! ${result.processed.length} items, ${result.totalChunksInDB} chunks in DB`, 'success');
-          urls = [];
-          renderUrls();
-        } else {
-          showStatus(status, result.error || 'Failed', 'error');
-        }
-      } catch (e) {
-        showStatus(status, e.message, 'error');
-      }
-
+        const res = await fetch(`${API}/training`, { method: 'POST', body: fd });
+        const r = await res.json();
+        if (r.success) {
+          showStatus('urlStatus', `Done! ${r.processed.length} items, ${r.totalChunksInDB} chunks`, 'success');
+          urls = []; renderUrls();
+        } else showStatus('urlStatus', r.error || 'Failed', 'error');
+      } catch (e) { showStatus('urlStatus', e.message, 'error'); }
       btn.disabled = false;
     }
 
-    function showStatus(el, msg, type) {
-      el.className = `status ${type}`;
+    function showStatus(id, msg, type) {
+      const el = document.getElementById(id);
+      el.className = `alert ${type}`;
       el.textContent = msg;
     }
 
-    // Load Documents
+    // ─── Load Documents ───
     async function loadDocuments() {
       const list = document.getElementById('docList');
       const empty = document.getElementById('docEmpty');
@@ -378,308 +466,216 @@
 
         if (data.documents && data.documents.length) {
           empty.style.display = 'none';
+          const modelShort = data.embeddingModel ? data.embeddingModel.split('/').pop() : '';
           list.innerHTML = `
-            <div style="margin-bottom: 12px; font-size: 0.8rem; color: #999;">
-              Total: ${data.totalChunks} chunks from ${data.documents.length} documents
-              ${data.embeddingModel ? `• Model: ${escapeHtml(data.embeddingModel.split('/').pop())}` : ''}
+            <div style="margin-bottom: 10px; font-size: 0.78rem; color: #888;">
+              ${data.totalChunks} chunks · ${data.totalDocuments} docs
+              ${modelShort ? '· ' + esc(modelShort) : ''}
             </div>
             ${data.documents.map(doc => {
-              // Handle both single URL and array of URLs
-              let sourceUrlLinks = '';
-              if (doc.sourceUrl) {
-                const urls = Array.isArray(doc.sourceUrl) ? doc.sourceUrl : [doc.sourceUrl];
-                sourceUrlLinks = urls.map(url => 
-                  `<a href="${url}" target="_blank" style="margin-left: 6px; font-size: 0.75rem; color: #666; text-decoration: none;">↗</a>`
-                ).join('');
-              }
-              
-              return `
-              <div class="doc-item">
+              const urls = doc.sourceUrl ? (Array.isArray(doc.sourceUrl) ? doc.sourceUrl : [doc.sourceUrl]) : [];
+              const sourceLinks = urls.map(u => `<a href="${u}" target="_blank" style="margin-left:4px;color:#888;text-decoration:none;">↗</a>`).join('');
+              const icon = doc.isUrl ? '🌐' : '📄';
+              const modelName = (doc.modelName || '').split('/').pop() || 'Unknown';
+              return `<div class="doc-item">
                 <div class="doc-info">
-                  <div class="doc-name">
-                    ${doc.isUrl ? '🌐 ' : '📄 '}
-                    ${escapeHtml(doc.fileName)}
-                    ${sourceUrlLinks}
-                  </div>
+                  <div class="doc-name">${icon} ${esc(doc.fileName)} ${sourceLinks}</div>
                   <div class="doc-meta">
-                    <span>📊 ${doc.chunks} chunks</span>
-                    <span>📅 Created: ${formatDate(doc.createdDate)}</span>
-                    ${doc.lastRetrainedAt ? `<span>🔄 Retrained: ${formatDate(doc.lastRetrainedAt)}</span>` : ''}
-                    <span>🤖 ${escapeHtml(doc.modelName?.split('/').pop() || 'Unknown')}</span>
+                    <span>${doc.chunks} chunks</span>
+                    <span>Created: ${fmtDate(doc.createdDate)}</span>
+                    ${doc.lastRetrainedAt ? `<span>Retrained: ${fmtDate(doc.lastRetrainedAt)}</span>` : ''}
+                    <span>${esc(modelName)}</span>
                   </div>
                 </div>
                 <div class="doc-actions">
-                  ${!doc.isUrl ? `<button class="view" onclick="viewDoc('${escapeHtml(doc.fileName)}')" title="View file">👁️</button>` : ''}
-                  ${doc.isUrl ? `<button class="view" onclick="viewText('${escapeHtml(doc.fileName)}')" title="View text content">📝</button>` : ''}
-                  <button class="retrain" onclick="retrainDoc('${escapeHtml(doc.fileName)}')" title="Retrain with current model">🔄</button>
-                  <button class="danger" onclick="deleteDoc('${escapeHtml(doc.fileName)}')">Delete</button>
+                  ${!doc.isUrl ? `<button class="small link" onclick="viewDoc('${escAttr(doc.fileName)}')">View</button>` : ''}
+                  ${doc.isUrl ? `<button class="small link" onclick="viewText('${escAttr(doc.fileName)}')">Text</button>` : ''}
+                  <button class="small link" onclick="retrainDoc('${escAttr(doc.fileName)}')">↻</button>
+                  <button class="danger small" onclick="deleteDoc('${escAttr(doc.fileName)}')">Delete</button>
                 </div>
-              </div>
-            `}).join('')}
+              </div>`;
+            }).join('')}
           `;
         } else {
           empty.style.display = 'block';
           list.innerHTML = '';
         }
       } catch (e) {
-        list.innerHTML = `<div style="color: #ef4444; padding: 20px;">Error: ${e.message}</div>`;
+        list.innerHTML = `<div style="color:#c00;padding:16px;">Error: ${esc(e.message)}</div>`;
       }
     }
 
-    // Delete Document
+    // ─── Delete Document ───
     async function deleteDoc(fileName) {
       if (!confirm(`Delete "${fileName}"?`)) return;
-
       try {
         const res = await fetch(`${API}/reset?filesOnly=true&fileName=${encodeURIComponent(fileName)}`, { method: 'DELETE' });
-        const result = await res.json();
-        
-        if (result.success) {
-          loadDocuments();
-        } else {
-          alert(result.message || 'Failed to delete');
-        }
-      } catch (e) {
-        alert('Error: ' + e.message);
-      }
+        const r = await res.json();
+        if (r.success) loadDocuments(); else alert(r.message || 'Failed');
+      } catch (e) { alert('Error: ' + e.message); }
     }
 
-    // Search
+    // ─── Search ───
     async function search() {
       const query = document.getElementById('searchInput').value.trim();
       const results = document.getElementById('results');
-
       if (!query) return;
 
-      results.innerHTML = '<div style="color: #999; padding: 20px 0;">Searching...</div>';
+      const searchType = document.getElementById('searchType').value;
+      const topK = parseInt(document.getElementById('topKSelect').value);
+      const minScore = parseFloat(document.getElementById('minScoreSlider').value);
+      const alpha = parseFloat(document.getElementById('alphaSlider').value);
+
+      results.innerHTML = '<div style="color:#999;padding:16px 0;">Searching...</div>';
 
       try {
+        const body = { query, topK, searchType, minScore };
+        if (searchType === 'hybrid') body.alpha = alpha;
+
         const res = await fetch(`${API}/search`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ query, topK: 5 })
+          body: JSON.stringify(body),
         });
         const data = await res.json();
 
         if (data.results && data.results.length) {
           results.innerHTML = `
-            <div style="font-size: 0.8rem; color: #999; margin-bottom: 15px;">
-              Found ${data.results.length} results for "${escapeHtml(data.query)}" above ${(data.minScore * 100).toFixed(0)}% similarity
+            <div style="font-size:0.78rem;color:#888;margin-bottom:12px;">
+              ${data.results.length} results · ${searchType} · threshold ${(data.minScore * 100).toFixed(0)}%
+              ${data.bestScore !== null ? `· best ${(data.bestScore * 100).toFixed(0)}%` : ''}
+              ${data.filteredOut ? `· ${data.filteredOut} filtered` : ''}
             </div>
             ${data.results.map(r => {
-              // Handle sourceUrl as array
-              let sourceUrlHtml = '';
-              if (r.sourceUrl) {
-                const urls = Array.isArray(r.sourceUrl) ? r.sourceUrl : [r.sourceUrl];
-                sourceUrlHtml = `<div class="meta" style="margin-top: 8px;">
-                  <strong>Source URLs:</strong> 
-                  ${urls.map((url, idx) => 
-                    `<a href="${url}" target="_blank" style="color: #2563eb; text-decoration: none; margin-right: 8px;">[${idx + 1}] ${new URL(url).hostname}</a>`
-                  ).join(' ')}
-                </div>`;
-              }
-              
-              return `
-              <div class="result">
-                <div class="score">
-                  ${(r.score * 100).toFixed(0)}% • ${escapeHtml(r.fileName)}
-                  ${r.fileUrl && (!r.sourceUrl || r.sourceUrl.length === 0) ? ` • <a href="${r.fileUrl}" target="_blank" style="color: #2563eb; text-decoration: none;">📄 View PDF</a>` : ''}
-                </div>
-                <div class="text">${escapeHtml(r.text)}</div>
-                ${sourceUrlHtml}
-                ${r.fileUrl && (!r.sourceUrl || r.sourceUrl.length === 0) ? `<div class="meta"><a href="${r.fileUrl}" target="_blank">📥 Download: ${escapeHtml(r.fileName)}</a></div>` : ''}
-              </div>
-            `}).join('')}
+              const urls = r.sourceUrl ? (Array.isArray(r.sourceUrl) ? r.sourceUrl : [r.sourceUrl]) : [];
+              const sourceHtml = urls.length
+                ? `<div class="meta" style="margin-top:6px;">Sources: ${urls.map((u,i) => `<a href="${u}" target="_blank">[${i+1}] ${new URL(u).hostname}</a>`).join(' ')}</div>`
+                : '';
+              const fileLink = r.fileUrl && !urls.length
+                ? `<div class="meta"><a href="${r.fileUrl}" target="_blank">Download: ${esc(r.fileName)}</a></div>`
+                : '';
+              const scores = [];
+              if (r.vectorScore !== undefined) scores.push(`vec ${(r.vectorScore * 100).toFixed(0)}`);
+              if (r.keywordScore !== undefined) scores.push(`kw ${(r.keywordScore * 100).toFixed(0)}`);
+              if (r.hybridScore !== undefined) scores.push(`hybrid ${(r.hybridScore * 100).toFixed(0)}`);
+              const scoreStr = scores.length ? ` · ${scores.join(' · ')}` : '';
+
+              return `<div class="result">
+                <div class="score">${(r.score * 100).toFixed(0)}% · ${esc(r.fileName)}${scoreStr}</div>
+                <div class="text">${esc(r.text)}</div>
+                ${sourceHtml}${fileLink}
+              </div>`;
+            }).join('')}
           `;
         } else {
-          const bestScore = typeof data.bestScore === 'number'
-            ? ` Best candidate was ${(data.bestScore * 100).toFixed(0)}%, below the ${(data.minScore * 100).toFixed(0)}% threshold.`
-            : '';
-          results.innerHTML = `<div style="color: #999; padding: 20px 0;">No relevant results found.${bestScore}</div>`;
+          const msg = data.bestScore !== null
+            ? `No relevant results. Best candidate was ${(data.bestScore * 100).toFixed(0)}%, below ${(data.minScore * 100).toFixed(0)}% threshold.`
+            : 'No relevant results found.';
+          results.innerHTML = `<div style="color:#999;padding:16px 0;">${msg}</div>`;
         }
       } catch (e) {
-        results.innerHTML = `<div style="color: #ef4444; padding: 20px 0;">Error: ${e.message}</div>`;
+        results.innerHTML = `<div style="color:#c00;padding:16px 0;">Error: ${esc(e.message)}</div>`;
       }
     }
 
-    function escapeHtml(t) {
-      const d = document.createElement('div');
-      d.textContent = t;
-      return d.innerHTML;
-    }
-
-    // Format date to readable string
-    function formatDate(dateStr) {
-      if (!dateStr) return 'N/A';
-      const date = new Date(dateStr);
-      return date.toLocaleDateString('en-US', { 
-        year: 'numeric', 
-        month: 'short', 
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    }
-
-    // Retrain single document
-    async function retrainDoc(fileName) {
-      if (!confirm(`Retrain "${fileName}" with current embedding model?`)) return;
-
-      const btn = event.target;
-      const originalText = btn.textContent;
-      btn.disabled = true;
-      btn.textContent = '⏳';
-
-      try {
-        const res = await fetch(`${API}/retrain`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ fileName })
-        });
-        const result = await res.json();
-
-        if (result.success) {
-          alert(`✅ Retrain "${fileName}" berhasil!\nChunks: ${result.chunks}\nModel: ${result.modelName.split('/').pop()}`);
-          loadDocuments();
-        } else {
-          alert(`❌ ${result.error}`);
-        }
-      } catch (e) {
-        alert(`❌ Error: ${e.message}`);
-      }
-
-      btn.disabled = false;
-      btn.textContent = originalText;
-    }
-
-    // View file
+    // ─── View file ───
     function viewDoc(fileName) {
-      const fileUrl = `${API}/file/${encodeURIComponent(fileName)}`;
-      window.open(fileUrl, '_blank');
+      window.open(`${API}/file/${encodeURIComponent(fileName)}`, '_blank');
     }
 
-    // View text content (for text input / URL fetch)
+    // ─── View text content (modal) ───
     async function viewText(fileName) {
       try {
         const res = await fetch(`${API}/text/${encodeURIComponent(fileName)}`);
         const data = await res.json();
-        
-        if (data.success) {
-          // Create modal to display text
-          const modal = document.createElement('div');
-          modal.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-          `;
-          
-          modal.innerHTML = `
-            <div style="
-              background: white;
-              border-radius: 8px;
-              padding: 24px;
-              max-width: 800px;
-              width: 90%;
-              max-height: 80vh;
-              overflow-y: auto;
-              box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-            ">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                <h3 style="margin: 0; font-size: 1.1rem;">📝 ${escapeHtml(fileName)}</h3>
-                <button onclick="this.closest('div[style*=fixed]').remove()" style="
-                  background: none;
-                  border: none;
-                  font-size: 1.5rem;
-                  cursor: pointer;
-                  color: #999;
-                  padding: 4px 8px;
-                ">×</button>
-              </div>
-              <div style="font-size: 0.8rem; color: #999; margin-bottom: 12px;">
-                ${data.totalChunks} chunk(s) • ${data.fullText.length.toLocaleString()} characters
-              </div>
-              <div style="
-                background: #f9f9f9;
-                border: 1px solid #eee;
-                border-radius: 4px;
-                padding: 16px;
-                white-space: pre-wrap;
-                font-family: monospace;
-                font-size: 0.85rem;
-                line-height: 1.6;
-                max-height: 60vh;
-                overflow-y: auto;
-              ">${escapeHtml(data.fullText)}</div>
-              <div style="margin-top: 16px; text-align: right;">
-                <button onclick="
-                  navigator.clipboard.writeText(\`${data.fullText.replace(/`/g, '\\`').replace(/\$/g, '\\$')}\`);
-                  alert('Text copied to clipboard!');
-                " style="
-                  background: #2563eb;
-                  color: white;
-                  border: none;
-                  padding: 8px 16px;
-                  border-radius: 4px;
-                  cursor: pointer;
-                  font-size: 0.85rem;
-                ">📋 Copy Text</button>
-                <button onclick="this.closest('div[style*=fixed]').remove()" style="
-                  background: #f5f5f5;
-                  color: #333;
-                  border: none;
-                  padding: 8px 16px;
-                  border-radius: 4px;
-                  cursor: pointer;
-                  font-size: 0.85rem;
-                  margin-left: 8px;
-                ">Close</button>
-              </div>
+        if (!data.success) { alert('Failed: ' + data.error); return; }
+
+        const overlay = document.createElement('div');
+        overlay.className = 'modal-overlay';
+        overlay.innerHTML = `
+          <div class="modal">
+            <div class="modal-header">
+              <h3>📝 ${esc(fileName)}</h3>
+              <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
             </div>
-          `;
-          
-          document.body.appendChild(modal);
-        } else {
-          alert(`❌ ${data.error}`);
-        }
-      } catch (e) {
-        alert(`❌ Error: ${e.message}`);
-      }
+            <div style="font-size:0.78rem;color:#888;margin-bottom:10px;">
+              ${data.totalChunks} chunks · ${data.fullText.length.toLocaleString()} chars
+            </div>
+            <div class="modal-body">${esc(data.fullText)}</div>
+            <div class="modal-footer">
+              <button onclick="navigator.clipboard.writeText(\`${data.fullText.replace(/`/g,'\\`').replace(/\$/g,'\\$')}\`);alert('Copied!')">📋 Copy</button>
+              <button class="secondary" onclick="this.closest('.modal-overlay').remove()">Close</button>
+            </div>
+          </div>
+        `;
+        document.body.appendChild(overlay);
+      } catch (e) { alert('Error: ' + e.message); }
     }
 
-    // Retrain all documents
-    async function retrainAll() {
-      if (!confirm('Retrain ALL documents with current embedding model?\n\nThis will delete and re-index all documents.')) return;
+    // ─── Retrain single ───
+    async function retrainDoc(fileName) {
+      if (!confirm(`Retrain "${fileName}" with current embedding model?`)) return;
+      try {
+        const res = await fetch(`${API}/retrain`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fileName }),
+        });
+        const r = await res.json();
+        if (r.success) {
+          alert(`Retrain done! ${r.chunks} chunks with ${r.modelName.split('/').pop()}`);
+          loadDocuments();
+        } else alert('Failed: ' + r.error);
+      } catch (e) { alert('Error: ' + e.message); }
+    }
 
+    // ─── Retrain all ───
+    async function retrainAll() {
+      if (!confirm('Retrain ALL documents with current model?\nThis will delete and re-index everything.')) return;
       const btn = document.getElementById('retrainAllBtn');
       btn.disabled = true;
-      btn.textContent = '⏳ Processing...';
-
+      btn.textContent = '⏳';
       try {
-        const res = await fetch(`${API}/retrain-all`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' }
-        });
-        const result = await res.json();
-
-        if (result.success) {
-          alert(`✅ Retrain semua dokumen berhasil!\n\nTotal dokumen: ${result.totalDocuments}\nTotal chunks: ${result.totalChunks}${result.failed > 0 ? `\nFailed: ${result.failed}` : ''}\nModel: ${result.modelName.split('/').pop()}`);
+        const res = await fetch(`${API}/retrain-all`, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+        const r = await res.json();
+        if (r.success) {
+          alert(`Retrain all done! ${r.totalDocuments} docs, ${r.totalChunks} chunks${r.failed ? ', ' + r.failed + ' failed' : ''}`);
           loadDocuments();
-        } else {
-          alert(`❌ ${result.error}`);
-        }
-      } catch (e) {
-        alert(`❌ Error: ${e.message}`);
-      }
-
+        } else alert('Failed: ' + r.error);
+      } catch (e) { alert('Error: ' + e.message); }
       btn.disabled = false;
-      btn.textContent = '🔄 Retrain All';
+      btn.textContent = '↻ Retrain All';
+    }
+
+    // ─── Helpers ───
+    const API_DOC = document.getElementById('agentDoc');
+    if (API_DOC) {
+      // Load API docs from agent.md so the content stays in sync
+      fetch('/agent.md')
+        .then(r => r.text())
+        .then(md => { API_DOC.textContent = md; })
+        .catch(() => {
+          API_DOC.textContent = 'Failed to load API docs. Open /agent.md directly.';
+        });
+    }
+
+    function esc(t) {
+      const d = document.createElement('div'); d.textContent = t; return d.innerHTML;
+    }
+    function escAttr(t) { return esc(t).replace(/'/g, '&apos;'); }
+    function copyApiDoc() {
+      const text = document.getElementById('agentDoc').textContent;
+      navigator.clipboard.writeText(text).then(() => alert('API docs copied!')).catch(() => {
+        // Fallback
+        const ta = document.createElement('textarea');
+        ta.value = text; document.body.appendChild(ta); ta.select();
+        document.execCommand('copy'); document.body.removeChild(ta);
+        alert('API docs copied!');
+      });
+    }
+    function fmtDate(s) {
+      if (!s) return 'N/A';
+      return new Date(s).toLocaleDateString('en-US', { year:'numeric', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
     }
   </script>
 </body>

@@ -75,7 +75,8 @@ async function main() {
   await disposeEmbedder();
 }
 
-main().catch((err) => {
+main().catch(async (err) => {
   console.error("Fatal error:", err);
+  await disposeEmbedder();
   process.exit(1);
 });

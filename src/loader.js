@@ -3,14 +3,14 @@ import path from "path";
 import pdfParse from "pdf-parse";
 import mammoth from "mammoth";
 import XLSX from "xlsx";
-import JSZip from "jszip";
 import { CONFIG } from "./config.js";
+import { parseExcel, parsePptx } from "./utils/parsers.js";
 
 // ─────────────────────────────────────────
 //  Load semua dokumen dari folder documents/
 // ─────────────────────────────────────────
 export async function loadDocuments(dir = CONFIG.DOCUMENTS_DIR) {
-  const files = fs.readdirSync(dir);
+  const files = await fs.promises.readdir(dir);
   const docs = [];
 
   for (const file of files) {
@@ -21,15 +21,15 @@ export async function loadDocuments(dir = CONFIG.DOCUMENTS_DIR) {
       let text = "";
 
       if (ext === ".pdf") {
-        const buffer = fs.readFileSync(filePath);
+        const buffer = await fs.promises.readFile(filePath);
         const parsed = await pdfParse(buffer);
         text = parsed.text;
         console.log(`  📄 PDF loaded: ${file} (${parsed.numpages} halaman)`);
       } else if (ext === ".txt" || ext === ".md") {
-        text = fs.readFileSync(filePath, "utf-8");
+        text = await fs.promises.readFile(filePath, "utf-8");
         console.log(`  📝 Text loaded: ${file}`);
       } else if (ext === ".docx") {
-        const buffer = fs.readFileSync(filePath);
+        const buffer = await fs.promises.readFile(filePath);
         const result = await mammoth.extractRawText({ buffer });
         text = result.value;
         console.log(`  📋 DOCX loaded: ${file}`);
@@ -41,7 +41,7 @@ export async function loadDocuments(dir = CONFIG.DOCUMENTS_DIR) {
         text = await parsePptx(filePath);
         console.log(`  📽️  PPTX loaded: ${file}`);
       } else if (ext === ".csv") {
-        const raw = fs.readFileSync(filePath, "utf-8");
+        const raw = await fs.promises.readFile(filePath, "utf-8");
         const workbook = XLSX.read(raw, { type: "string" });
         text = parseExcel(workbook);
         console.log(`  📊 CSV loaded: ${file}`);
@@ -77,9 +77,12 @@ export function chunkText(text, fileName, options = {}) {
   // Bersihkan whitespace berlebih tapi keep struktur
   const clean = text.trim();
 
-  const qaChunks = chunkQuestionAnswerCsv(clean, fileName);
-  if (qaChunks.length > 0) {
-    return qaChunks;
+  // Only attempt QA CSV detection for .csv files
+  if (fileName && fileName.toLowerCase().endsWith(".csv")) {
+    const qaChunks = chunkQuestionAnswerCsv(clean, fileName);
+    if (qaChunks.length > 0) {
+      return qaChunks;
+    }
   }
 
   if (!auto) {
@@ -273,11 +276,11 @@ function chunkTextFixed(text, fileName, CHUNK_SIZE, CHUNK_OVERLAP) {
 
   while (start < clean.length) {
     const end = Math.min(start + CHUNK_SIZE, clean.length);
-    const chunkText = clean.slice(start, end);
+    const fixedChunk = clean.slice(start, end);
 
     chunks.push({
       id: `${fileName}::chunk_${index}`,
-      text: chunkText,
+      text: fixedChunk,
       metadata: {
         fileName,
         chunkIndex: index,
@@ -310,50 +313,4 @@ export async function loadAndChunkAll(dir = CONFIG.DOCUMENTS_DIR, options = {}) 
   return allChunks;
 }
 
-// ─────────────────────────────────────────
-//  Helper — parse Excel workbook jadi text
-// ─────────────────────────────────────────
-function parseExcel(workbook) {
-  const parts = [];
-  for (const sheetName of workbook.SheetNames) {
-    const sheet = workbook.Sheets[sheetName];
-    const json = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
-    if (json.length === 0) continue;
-
-    parts.push(`=== Sheet: ${sheetName} ===`);
-    for (const row of json) {
-      const cells = row.filter((c) => c !== "").join(" | ");
-      if (cells) parts.push(cells);
-    }
-  }
-  return parts.join("\n");
-}
-
-// ─────────────────────────────────────────
-//  Helper — parse PPTX file jadi text
-// ─────────────────────────────────────────
-async function parsePptx(filePath) {
-  const buffer = fs.readFileSync(filePath);
-  const zip = await JSZip.loadAsync(buffer);
-  const parts = [];
-
-  // PPTX slides are stored as /ppt/slides/slideN.xml
-  const slideFiles = Object.keys(zip.files)
-    .filter((name) => /^ppt\/slides\/slide\d+\.xml$/i.test(name))
-    .sort();
-
-  for (const slideFile of slideFiles) {
-    const content = await zip.files[slideFile].async("string");
-    // Extract text from XML (remove tags)
-    const text = content
-      .replace(/<[^>]+>/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-    if (text) {
-      parts.push(`[Slide ${slideFiles.indexOf(slideFile) + 1}]`);
-      parts.push(text);
-    }
-  }
-
-  return parts.join("\n\n");
-}
+// parseExcel and parsePptx are imported from utils/parsers.js

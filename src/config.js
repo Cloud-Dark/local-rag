@@ -14,4 +14,11 @@ export const CONFIG = {
   SEARCH_MIN_SCORE: numberFromEnv("SEARCH_MIN_SCORE", 0.7),
   DOCUMENTS_DIR: process.env.DOCUMENTS_DIR || "./documents",
   DB_PATH: process.env.DB_PATH || "./db/vectra",
+
+  // BM25 keyword search defaults
+  BM25_K1: numberFromEnv("BM25_K1", 1.5),
+  BM25_B: numberFromEnv("BM25_B", 0.75),
+
+  // Server port
+  PORT: parseInt(process.env.PORT, 10) || 3000,
 };

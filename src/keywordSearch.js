@@ -1,5 +1,7 @@
-const DEFAULT_K1 = 1.2;
-const DEFAULT_B = 0.75;
+import { CONFIG } from "./config.js";
+
+const DEFAULT_K1 = CONFIG.BM25_K1;
+const DEFAULT_B = CONFIG.BM25_B;
 
 export function tokenize(text) {
   return String(text || "")

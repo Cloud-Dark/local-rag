@@ -34,8 +34,8 @@ export async function upsertChunk(chunk, vector, sourceUrl = null) {
     vector,
     metadata: {
       text: chunk.text,
-      sourceUrl, // URL sumber dokumen
       ...chunk.metadata,
+      sourceUrl, // explicit, wins over anything in chunk.metadata
     },
   });
 }
@@ -63,6 +63,7 @@ export async function searchSimilar(queryVector, topK = CONFIG.TOP_K) {
 // ─────────────────────────────────────────
 export async function getStats() {
   const index = await getIndex();
+  // NOTE: listItems() fetches ALL items just to count — expensive for large DBs
   const stats = await index.listItems();
   return {
     totalChunks: stats.length,
@@ -76,6 +77,6 @@ export async function getStats() {
 export async function clearIndex() {
   const index = await getIndex();
   await index.deleteIndex();
-  await index.createIndex();
+  _index = null; // force next getIndex() to create fresh
   console.log("🗑️  Vector index direset.");
 }
