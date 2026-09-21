@@ -1,9 +1,9 @@
-# 🤖 RAG Lokal — Node.js
+# RAG Lokal — Node.js
 
-Sistem **Retrieval-Augmented Generation (RAG)** untuk **semantic search** dokumen.
-Berjalan **100% lokal**, tanpa API key, tanpa biaya.
+Sistem Retrieval-Augmented Generation (RAG) untuk semantic search dokumen.
+Berjalan 100% lokal, tanpa API key, tanpa biaya.
 
-> **Catatan:** Project ini hanya menyediakan **embedding** dan **semantic search**. 
+> **Catatan:** Project ini hanya menyediakan embedding dan semantic search.
 > LLM/chat disediakan terpisah sesuai kebutuhan kamu.
 
 ---
@@ -17,7 +17,7 @@ Berjalan **100% lokal**, tanpa API key, tanpa biaya.
 | Excel/CSV Parser | `xlsx` | Baca file XLSX, XLS, CSV |
 | PPTX Parser | `jszip` | Baca file PowerPoint |
 | Embedding | `node-llama-cpp` | GGUF embedding model |
-| Vector Store | `vectra` | JSON lokal, no server |
+| Vector Store | `vectra` | JSON lokal, tanpa server |
 | API Server | `express` | REST API untuk training & search |
 
 ---
@@ -41,7 +41,7 @@ rag-local/
 
 ---
 
-## Dokumentasi Format
+## Format Dokumen yang Didukung
 
 | Format | Library | Ekstraksi |
 |---|---|---|
@@ -52,7 +52,9 @@ rag-local/
 | PPTX | `jszip` | Teks dari tiap slide |
 | TXT / MD | built-in | Read file langsung |
 
-> 📸 **Image/OCR** → Belum tersedia, rencana pakai Tesseract.js nanti.
+Image/OCR belum tersedia. Rencananya pakai Tesseract.js.
+
+---
 
 ## Setup
 
@@ -63,9 +65,9 @@ npm install
 
 ### 2. Download model GGUF embedding dari HuggingFace
 
-**Embedding model** (rekomendasi):
+Rekomendasi: nomic-embed-text (ringan, hasilnya bagus).
+
 ```bash
-# nomic-embed-text (ringan, bagus)
 # https://huggingface.co/nomic-ai/nomic-embed-text-v1.5-GGUF
 
 # Download manual atau gunakan wget:
@@ -92,13 +94,12 @@ cp catatan.txt ./documents/
 npm start
 ```
 
-Server akan berjalan di `http://localhost:3000`
+Server berjalan di `http://localhost:3000`.
 
-**🎨 Web UI:** http://localhost:3000 — Interface grafis untuk training & search
+- Web UI: http://localhost:3000 (interface grafis untuk training & search)
+- Swagger UI: http://localhost:3000/api-docs (dokumentasi API interaktif)
 
-**📖 Swagger UI:** http://localhost:3000/api-docs — Dokumentasi API interaktif
-
-**Endpoints yang tersedia:**
+Endpoint yang tersedia:
 
 | Method | Endpoint | Deskripsi |
 |---|---|---|
@@ -106,13 +107,12 @@ Server akan berjalan di `http://localhost:3000`
 | `GET` | `/get-list` | Lihat semua dokumen yang sudah di-training |
 | `POST` | `/search` | Cari chunk paling relevan |
 | `GET` | `/health` | Status server |
-| `DELETE` | `/reset` | Hapus semua data / data file tertentu |
+| `DELETE` | `/reset` | Hapus semua data atau data file tertentu |
 
 ---
 
 ### 2. Upload & Training Dokumen
 
-**Via API:**
 ```bash
 curl -X POST http://localhost:3000/training \
   -F "files=@dokumen1.pdf" \
@@ -121,7 +121,7 @@ curl -X POST http://localhost:3000/training \
   -F "files=@slides.pptx"
 ```
 
-**Response:**
+Response:
 ```json
 {
   "success": true,
@@ -141,7 +141,7 @@ curl -X POST http://localhost:3000/training \
 curl http://localhost:3000/get-list
 ```
 
-**Response:**
+Response:
 ```json
 {
   "totalChunks": 56,
@@ -161,16 +161,15 @@ curl http://localhost:3000/get-list
 
 ---
 
-### 4. Search / Semantic Search
+### 4. Semantic Search
 
-**Via API:**
 ```bash
 curl -X POST http://localhost:3000/search \
   -H "Content-Type: application/json" \
   -d '{"query": "apa itu machine learning?", "topK": 3}'
 ```
 
-**Response:**
+Response:
 ```json
 {
   "query": "apa itu machine learning?",
@@ -187,7 +186,7 @@ curl -X POST http://localhost:3000/search \
 }
 ```
 
-**Via CLI:**
+Lewat CLI:
 ```bash
 npm run search
 ```
@@ -196,17 +195,17 @@ npm run search
 
 ### 5. Reset / Hapus Data
 
-**Hapus semua data:**
+Hapus semua data:
 ```bash
 curl -X DELETE http://localhost:3000/reset
 ```
 
-**Hapus data dari file tertentu saja:**
+Hapus data dari satu file saja:
 ```bash
 curl -X DELETE "http://localhost:3000/reset?filesOnly=true&fileName=dokumen.pdf"
 ```
 
-**Response:**
+Response:
 ```json
 {
   "success": true,
@@ -219,13 +218,13 @@ curl -X DELETE "http://localhost:3000/reset?filesOnly=true&fileName=dokumen.pdf"
 
 ### 6. Ingest Dokumen (CLI Mode)
 
-Jika ingin indexing dokumen dari folder `documents/` secara langsung:
+Untuk indexing dokumen dari folder `documents/` secara langsung:
 
 ```bash
 # Ingest semua dokumen di folder documents/
 npm run ingest
 
-# Reset + ingest ulang dari awal
+# Reset lalu ingest ulang dari awal
 npm run ingest:reset
 ```
 
@@ -233,9 +232,9 @@ npm run ingest:reset
 
 ## Tips
 
-- **Chunk size**: Kalau dokumen panjang & padat, naikkan `CHUNK_SIZE` ke 800-1000 di `config.js`
-- **TOP_K**: Naikkan ke 5 kalau jawaban kurang lengkap
-- **Model ringan**: Kalau RAM terbatas, pakai model Q2_K atau Q3_K
+- Kalau dokumen panjang dan padat, naikkan `CHUNK_SIZE` ke 800-1000 di `config.js`.
+- Naikkan `TOP_K` ke 5 kalau hasil search kurang lengkap.
+- Kalau RAM terbatas, pakai model kuantisasi Q2_K atau Q3_K.
 
 ---
 
@@ -251,7 +250,7 @@ npm run ingest:reset
 
 ## Integrasi dengan LLM Kamu
 
-Setelah dapat hasil search, kamu bisa kirim ke LLM pilihan kamu:
+Hasil search bisa langsung kamu kirim ke LLM pilihanmu:
 
 ```javascript
 const response = await fetch('http://localhost:3000/search', {
